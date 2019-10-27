@@ -39,16 +39,16 @@ impl Fic{
     {
         if self.len != f.len
         {
-            return false;
+            return true;
         }
-        if self.name != f.name 
+        /*if self.name != f.name 
         {
-            return false;
-        }
+            return true;
+        }*/
         if self.modify != f.modify
         {
-            return false;
+            return true;
         }
-        true
+        false
     }
 }
