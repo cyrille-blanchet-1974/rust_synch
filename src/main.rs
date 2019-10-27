@@ -1,11 +1,12 @@
 mod explore;
+mod paramcli;
+
 use explore::*;
+use paramcli::*;
 
 use std::io;
 use std::path::Path;
 use std::time::SystemTime;
-
-use clap::{Arg, App};
 
 
 fn pause()
@@ -19,102 +20,15 @@ fn pause()
 
 
 fn main() {
-    let matches = App::new("Synch")
-        .version("0.1.0")
-        .author("Blanchet Cyrille")
-        .about("Syncronising two folders")
-        .arg(Arg::with_name("src")
-                 .short("s")
-                 .long("source")
-                 .takes_value(true)
-                 .help("Source Folder"))
-        .arg(Arg::with_name("dst")
-                 .short("d")
-                 .long("destination")
-                 .takes_value(true)
-                 .help("destination Folder"))
-        .arg(Arg::with_name("num")
-                 .short("n")
-                 .long("number")
-                 .takes_value(true)
-                 .help("Five less than your favorite number"))
-        .get_matches();
+    let cli = Paramcli::new();
+    println!("params: {:?}", cli );
+    /* 
+    cargo run /src:c:\ /dst:"f:\windows XP" /fic:run.cmd /multithread /append /verbose /Crypt /Ignore_Err
+    -> params: Paramcli { source: "c:\\", destination: "f:\\windows XP", fic_out: "run.cmd", multithread: true, append: true, verbose: true, crypt: true, ignore_err: true }
 
-    let src = matches.value_of("src").unwrap();
-    let dst = matches.value_of("dst").unwrap();
-    let num_str = matches.value_of("num").unwrap();
-    println!("{} {} {}",src,dst,num_str);
-
-    /*
-/// Search for a pattern in a file and display the lines that contain it.
-#[derive(StructOpt,Debug)]
-#[structopt(name = "synch", about = "utility to synchronize to folders.")]
-struct Cli {
-    #[structopt(short="src", long="source", parse(from_os_str))]
-    src: std::path::PathBuf,
-
-    #[structopt(short="dst", long="destination", parse(from_os_str))]
-    dst: std::path::PathBuf,
-
-    #[structopt(short="fic", long="fichier_cmd", parse(from_os_str))]
-    fic: std::path::PathBuf,
-
-    #[structopt(short="m", long="multithread")]
-    multithread: bool,
-
-    #[structopt(short="a", long="append")]
-    append: bool,
-
-    #[structopt(short="v", long="verbose")]
-    verbose: bool,
-
-    #[structopt(short="c", long="crypt")]
-    crypt: bool,
-
-    #[structopt(short="i", long="ignore_err")]
-    ignore_err: bool,
-}
-----------------------------------------------------------------------------------------------------------------------------------
-PS F:\dev\rust\synch_5> .\target\debug\synch.exe /DDD
-error: Found argument '/DDD' which wasn't expected, or isn't valid in this context
-
-USAGE:
-    synch.exe [FLAGS] --destination <dst> --fichier_cmd <fic> --source <src>
-
-For more information try --help
-----------------------------------------------------------------------------------------------------------------------------------
-F:\dev\rust\synch_5> .\target\debug\synch.exe --help
-synch 0.1.0
-cyrille
-utility to synchronize to folders.
-
-USAGE:
-    synch.exe [FLAGS] --destination <dst> --fichier_cmd <fic> --source <src>
-FLAGS:
-    -a, --append
-    -c, --crypt
-    -h, --help           Prints help information
-    -i, --ignore_err
-    -m, --multithread
-    -V, --version        Prints version information
-
-OPTIONS:
-    -d, --destination <dst>
-    -f, --fichier_cmd <fic>
-    -s, --source <src>
-PS F:\dev\rust\synch_5> .\target\debug\synch.exe --src c:\ --dst f:\ --fic batch.cmd -a -c -i -m -v
-error: Found argument '--src' which wasn't expected, or isn't valid in this context
-        Did you mean --source?
-
-USAGE:
-    synch.exe [FLAGS] --destination <dst> --fichier_cmd <fic> --source <src>
-
-For more information try --help
-----------------------------------------------------------------------------------------------------------------------------------
-F:\dev\rust\synch_5> .\target\debug\synch.exe --source c:\ --destination f:\ --fichier_cmd batch.cmd -a -c -i -m -v
-Cli { src: "c:\\", dst: "f:\\", fic: "batch.cmd", multithread: true, append: true, verbose: true, crypt: true, ignore_err: true }    
+    cargo run /src:c:\ /dst:"f:\windows XP" /fic:run.cmd 
+    -> params: Paramcli { source: "c:\\", destination: "f:\\windows XP", fic_out: "run.cmd", multithread: false, append: false, verbose: false, crypt: false, ignore_err: false }
     */
-
     
     pause();
     let start = SystemTime::now();
