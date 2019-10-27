@@ -5,6 +5,36 @@ use std::io;
 use std::path::Path;
 use std::time::SystemTime;
 
+use structopt::StructOpt;
+
+/// Search for a pattern in a file and display the lines that contain it.
+#[derive(StructOpt,Debug)]
+#[structopt(name = "synch", about = "utility to synchronize to folders.")]
+struct Cli {
+    #[structopt(short="src", long="source", parse(from_os_str))]
+    src: std::path::PathBuf,
+
+    #[structopt(short="dst", long="destination", parse(from_os_str))]
+    dst: std::path::PathBuf,
+
+    #[structopt(short="fic", long="fichier_cmd", parse(from_os_str))]
+    fic: std::path::PathBuf,
+
+    #[structopt(short="m", long="multithread")]
+    multithread: bool,
+
+    #[structopt(short="a", long="append")]
+    append: bool,
+
+    #[structopt(short="v", long="verbose")]
+    verbose: bool,
+
+    #[structopt(short="c", long="crypt")]
+    crypt: bool,
+
+    #[structopt(short="i", long="ignore_err")]
+    ignore_err: bool,
+}
 
 fn pause()
 {
@@ -17,6 +47,52 @@ fn pause()
 
 
 fn main() {
+    let cli = Cli::from_args();
+    println!("{:?}", cli);
+
+    /*
+----------------------------------------------------------------------------------------------------------------------------------
+PS F:\dev\rust\synch_5> .\target\debug\synch.exe /DDD
+error: Found argument '/DDD' which wasn't expected, or isn't valid in this context
+
+USAGE:
+    synch.exe [FLAGS] --destination <dst> --fichier_cmd <fic> --source <src>
+
+For more information try --help
+----------------------------------------------------------------------------------------------------------------------------------
+F:\dev\rust\synch_5> .\target\debug\synch.exe --help
+synch 0.1.0
+cyrille
+utility to synchronize to folders.
+
+USAGE:
+    synch.exe [FLAGS] --destination <dst> --fichier_cmd <fic> --source <src>
+FLAGS:
+    -a, --append
+    -c, --crypt
+    -h, --help           Prints help information
+    -i, --ignore_err
+    -m, --multithread
+    -V, --version        Prints version information
+
+OPTIONS:
+    -d, --destination <dst>
+    -f, --fichier_cmd <fic>
+    -s, --source <src>
+PS F:\dev\rust\synch_5> .\target\debug\synch.exe --src c:\ --dst f:\ --fic batch.cmd -a -c -i -m -v
+error: Found argument '--src' which wasn't expected, or isn't valid in this context
+        Did you mean --source?
+
+USAGE:
+    synch.exe [FLAGS] --destination <dst> --fichier_cmd <fic> --source <src>
+
+For more information try --help
+----------------------------------------------------------------------------------------------------------------------------------
+F:\dev\rust\synch_5> .\target\debug\synch.exe --source c:\ --destination f:\ --fichier_cmd batch.cmd -a -c -i -m -v
+Cli { src: "c:\\", dst: "f:\\", fic: "batch.cmd", multithread: true, append: true, verbose: true, crypt: true, ignore_err: true }    
+    */
+
+    
     pause();
     let start = SystemTime::now();
     let root = Path::new("c:\\");
