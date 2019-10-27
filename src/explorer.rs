@@ -1,5 +1,5 @@
-mod dossier;
-pub use dossier::*;
+pub mod fold;
+pub use fold::*;
 
 use std::fs;
 use std::path::Path;
@@ -25,14 +25,14 @@ impl Explorer{
         }
     }
 
-    pub fn run(&mut self,dir: &Path) -> Dossier
+    pub fn run(&mut self,dir: &Path) -> Fold
     {
         self.folder_explored_count = 0;
         self.folder_forbidden_count = 0;
         self.file_explored_count = 0;
         self.file_forbidden_count = 0;
         let start = SystemTime::now();
-        let mut d = Dossier::new(dir);
+        let mut d = Fold::new_root(dir);
         self.run_int(dir,&mut d);
         let end = SystemTime::now();
         let tps = end.duration_since(start).expect("Error computing duration!");
@@ -41,7 +41,7 @@ impl Explorer{
     }
 
     //internal function called by run so run could do some 1st call things without testing at each runs
-    fn run_int(&mut self,dir: &Path,doss : &mut Dossier)
+    fn run_int(&mut self,dir: &Path,fold : &mut Fold)
     {
         //count for this level of folder
         if dir.is_dir() {
@@ -51,6 +51,7 @@ impl Explorer{
                 Err(e) => {
                     println!("Error {} on {:?}",e,dir);//appears on folder of which i have no access right
                     self.folder_forbidden_count +=1;
+                    fold.forbidden=true;
                     }, 
                 Ok(content) => {
                     for entry in content {
@@ -61,15 +62,15 @@ impl Explorer{
                                 let path = e.path();
                                 if path.is_dir() {
                                     self.folder_explored_count += 1;
-                                    let mut sous_doss = Dossier::new(&path);
-                                    self.run_int(&path,&mut sous_doss);
-                                    doss.add_dossier(sous_doss);
+                                    let mut sub_fold = Fold::new(&path);
+                                    self.run_int(&path,&mut sub_fold);
+                                    fold.add_fold(sub_fold);
                                 } else {
                                     self.file_explored_count += 1;
-                                    let fic = Fichier::new(&path);
+                                    let fic = Fic::new(&path);
                                     if fic.is_some()
                                     {
-                                        doss.add_fichier(fic.unwrap());
+                                        fold.add_fic(fic.unwrap());
                                     }
                                     else
                                     {
