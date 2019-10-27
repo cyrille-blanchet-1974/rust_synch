@@ -5,8 +5,47 @@ use std::io;
 use std::path::Path;
 use std::time::SystemTime;
 
-use structopt::StructOpt;
+use clap::{Arg, App};
 
+
+fn pause()
+{
+    //'pause' //press enter
+    println!("Pause: press Enter");
+    let mut _res = String::new();
+    io::stdin().read_line(&mut _res).expect("Failed to read line");
+    //let res = _res.trim();
+}
+
+
+fn main() {
+    let matches = App::new("Synch")
+        .version("0.1.0")
+        .author("Blanchet Cyrille")
+        .about("Syncronising two folders")
+        .arg(Arg::with_name("src")
+                 .short("s")
+                 .long("source")
+                 .takes_value(true)
+                 .help("Source Folder"))
+        .arg(Arg::with_name("dst")
+                 .short("d")
+                 .long("destination")
+                 .takes_value(true)
+                 .help("destination Folder"))
+        .arg(Arg::with_name("num")
+                 .short("n")
+                 .long("number")
+                 .takes_value(true)
+                 .help("Five less than your favorite number"))
+        .get_matches();
+
+    let src = matches.value_of("src").unwrap();
+    let dst = matches.value_of("dst").unwrap();
+    let num_str = matches.value_of("num").unwrap();
+    println!("{} {} {}",src,dst,num_str);
+
+    /*
 /// Search for a pattern in a file and display the lines that contain it.
 #[derive(StructOpt,Debug)]
 #[structopt(name = "synch", about = "utility to synchronize to folders.")]
@@ -35,22 +74,6 @@ struct Cli {
     #[structopt(short="i", long="ignore_err")]
     ignore_err: bool,
 }
-
-fn pause()
-{
-    //'pause' //press enter
-    println!("Pause: press Enter");
-    let mut _res = String::new();
-    io::stdin().read_line(&mut _res).expect("Failed to read line");
-    //let res = _res.trim();
-}
-
-
-fn main() {
-    let cli = Cli::from_args();
-    println!("{:?}", cli);
-
-    /*
 ----------------------------------------------------------------------------------------------------------------------------------
 PS F:\dev\rust\synch_5> .\target\debug\synch.exe /DDD
 error: Found argument '/DDD' which wasn't expected, or isn't valid in this context
