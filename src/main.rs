@@ -1,13 +1,8 @@
-mod explore;
-mod paramcli;
+mod biexplorer;
 
-use explore::*;
-use paramcli::*;
+use biexplorer::*;
 
 use std::io;
-use std::path::Path;
-use std::time::SystemTime;
-
 
 fn pause()
 {
@@ -20,25 +15,12 @@ fn pause()
 
 
 fn main() {
-    let cli = Paramcli::new();
-    println!("params: {:?}", cli );
-    /* 
-    cargo run /src:c:\ /dst:"f:\windows XP" /fic:run.cmd /multithread /append /verbose /Crypt /Ignore_Err
-    -> params: Paramcli { source: "c:\\", destination: "f:\\windows XP", fic_out: "run.cmd", multithread: true, append: true, verbose: true, crypt: true, ignore_err: true }
-
-    cargo run /src:c:\ /dst:"f:\windows XP" /fic:run.cmd 
-    -> params: Paramcli { source: "c:\\", destination: "f:\\windows XP", fic_out: "run.cmd", multithread: false, append: false, verbose: false, crypt: false, ignore_err: false }
-    */
-    
     pause();
-    let start = SystemTime::now();
-    let root = Path::new("c:\\");
-    let mut explore = Explore::new();
-    let _data = explore.run(&root);
-    let end = SystemTime::now();
-    println!("Duration: {:?}", end.duration_since(start).expect("Error computing duration!")  );
-    //println!("Total {}/{} dir && {}/{} files",explore.folder_explored_count,explore.folder_forbidden_count,explore.file_explored_count,explore.file_forbidden_count);
-    explore.display_count();
+    let biexplorer = Biexplorer::new();
+    pause();
+    biexplorer.display_source();
+    pause();
+    biexplorer.display_destination();
     pause();
     //pour synch_1:
     //premier parcours de C:\ Dureation: 582.7216589s (affichage de chaque dossier avec nb dir et nb fic)

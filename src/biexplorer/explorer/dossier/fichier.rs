@@ -4,9 +4,9 @@ use std::path::Path;
 
 pub struct Fichier
 {
-    modify : SystemTime,
-    len : u64,
-    name : OsString,
+    pub modify : SystemTime,
+    pub len : u64,
+    pub name : OsString,
 }
 
 impl Fichier{

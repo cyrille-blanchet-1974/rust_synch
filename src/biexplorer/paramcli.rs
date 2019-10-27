@@ -1,17 +1,16 @@
 use std::env;
-//use std::io;
 
 #[derive(Debug)]
 pub struct Paramcli
 {
-    source: String,
-    destination: String,
-    fic_out : String,
-    multithread : bool,
-    append : bool,
-    verbose : bool,
-    crypt : bool,
-    ignore_err : bool,
+    pub source: String,
+    pub destination: String,
+    pub fic_out : String,
+    pub multithread : bool,
+    pub append : bool,
+    pub verbose : bool,
+    pub crypt : bool,
+    pub ignore_err : bool,
 }
 
 impl Paramcli{

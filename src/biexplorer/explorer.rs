@@ -3,9 +3,10 @@ pub use dossier::*;
 
 use std::fs;
 use std::path::Path;
+use std::time::{SystemTime,Duration};
 
 
-pub struct Explore
+pub struct Explorer
 {
     folder_explored_count: u32,
     folder_forbidden_count: u32,
@@ -13,10 +14,10 @@ pub struct Explore
     file_forbidden_count: u32,   
 }
 
-impl Explore{
-    pub fn new()->Explore
+impl Explorer{
+    pub fn new()->Explorer
     {
-        Explore{
+        Explorer{
             folder_explored_count: 0,
             folder_forbidden_count: 0,
             file_explored_count: 0,
@@ -26,8 +27,16 @@ impl Explore{
 
     pub fn run(&mut self,dir: &Path) -> Dossier
     {
+        self.folder_explored_count = 0;
+        self.folder_forbidden_count = 0;
+        self.file_explored_count = 0;
+        self.file_forbidden_count = 0;
+        let start = SystemTime::now();
         let mut d = Dossier::new(dir);
         self.run_int(dir,&mut d);
+        let end = SystemTime::now();
+        let tps = end.duration_since(start).expect("Error computing duration!");
+        self.display_debug(dir, tps);
         d
     }
 
@@ -75,8 +84,11 @@ impl Explore{
         }
     }
 
-    pub fn display_count(&self)
+    fn display_debug(&self,dir: &Path, tps:Duration)
     {
-        println!("Total {}/{} dir && {}/{} files",self.folder_explored_count,self.folder_forbidden_count,self.file_explored_count,self.file_forbidden_count);
+        println!("Folder: {:?}",dir);
+        println!("Folder total/forbidden {}/{} ",self.folder_explored_count,self.folder_forbidden_count);
+        println!("Files total/forbidden {}/{}",self.file_explored_count,self.file_forbidden_count);
+        println!("Duration {:?}",tps);
     }
 }
