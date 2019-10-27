@@ -1,29 +1,34 @@
+pub mod lireconf;
+pub use lireconf::*;
+
 use std::env;
 
 #[derive(Debug)]
 pub struct Paramcli
 {
-    pub source: String,
-    pub destination: String,
+    pub source: Vec<String>,
+    pub destination: Vec<String>,
     pub fic_out : String,
-    pub multithread : bool,
-    pub append : bool,
+//    pub multithread : bool,
+//    pub append : bool,
     pub verbose : bool,
     pub crypt : bool,
     pub ignore_err : bool,
+    pub config: String,
 }
 
 impl Paramcli{
     pub fn new()->Paramcli
     {
-        let mut src= String::new();
-        let mut dst= String::new();
         let mut fic= String::new();
-        let mut mth = false;
-        let mut app = false;
+//        let mut mth = false;
+//        let mut app = false;
         let mut ver = false;
         let mut cry = false;
         let mut ign = false;
+        let mut src = Vec::new();
+        let mut dst = Vec::new();
+        let mut conf= String::new();
 
         let args: Vec<String> = env::args().skip(1).collect();
         for arg in args {
@@ -34,12 +39,17 @@ impl Paramcli{
             }
             if arg.to_lowercase().starts_with("/src:")
             {
-                src = get_param(arg);
+                src.push(get_param(arg));
                 continue;
             }
             if arg.to_lowercase().starts_with("/dst:")
             {
-                dst = get_param(arg);
+                dst.push(get_param(arg));
+                continue;
+            }
+            if arg.to_lowercase().starts_with("/conf:")
+            {
+                conf = get_param(arg);
                 continue;
             }
             if arg.to_lowercase().starts_with("/fic:")
@@ -47,16 +57,16 @@ impl Paramcli{
                 fic = get_param(arg);
                 continue;
             }
-            if arg.to_lowercase() == "/multithread"
+            /*if arg.to_lowercase() == "/multithread"
             {
                 mth = true;
                 continue;
-            }
-            if arg.to_lowercase() == "/append"
+            }*/
+            /*if arg.to_lowercase() == "/append"
             {
                 app = true;
                 continue;
-            }
+            }*/
             if arg.to_lowercase() == "/verbose"
             {
                 ver = true;
@@ -73,15 +83,23 @@ impl Paramcli{
                 continue;
             }
         }
+        if !conf.is_empty()
+        {
+            let lireconf = Lireconf::new(&conf);
+            src = lireconf.source;
+            dst = lireconf.destination;
+        }
+        //TODO: check src <> dst et size ==
         Paramcli{
             source: src,
             destination: dst,
             fic_out : fic,
-            multithread : mth,
-            append : app,
+            //multithread : mth,
+            //append : app,
             verbose : ver,
             crypt : cry,
             ignore_err : ign,
+            config : conf
         }
     }
 }

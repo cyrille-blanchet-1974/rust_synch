@@ -4,6 +4,9 @@ pub use fic::*;
 use std::ffi::OsString;
 use std::path::Path;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
+use std::time::SystemTime;
+
 
 pub struct Fold
 {
@@ -11,6 +14,8 @@ pub struct Fold
     pub fics : HashMap<OsString,Fic>,   //files inside the folder
     pub folds : HashMap<OsString,Fold>, //sub-filders
     pub forbidden : bool,               //Forbidden folder
+    pub folder_count: u32,              //number of subfolder (recursively)
+    pub file_count: u32,                //number of files (recursively)
 }
 
 impl Fold{
@@ -20,7 +25,9 @@ impl Fold{
             name : (*dir).as_os_str().to_os_string(), 
             fics : HashMap::new(),
             folds : HashMap::new(),
-            forbidden : false
+            forbidden : false,
+            folder_count: 0,
+            file_count: 0
             }
     }
 
@@ -36,7 +43,9 @@ impl Fold{
             name : n, 
             fics : HashMap::new(),
             folds : HashMap::new(),
-            forbidden : false
+            forbidden : false,
+            folder_count: 0,
+            file_count: 0
             }
     }
 
@@ -44,6 +53,10 @@ impl Fold{
     {
         let n = Path::new(&fold.name);
         let name = (n.file_name().unwrap()).to_os_string();
+        self.folder_count +=1;
+        let d = fold.get_counts();
+        self.folder_count += d.0; 
+        self.file_count += d.1;
         self.folds.insert(name, fold);
     }
 
@@ -51,9 +64,17 @@ impl Fold{
     {
         let n = Path::new(&fic.name);
         let name = (n.file_name().unwrap()).to_os_string();
+        self.file_count +=1;
         self.fics.insert(name, fic);
     }
 
+    pub fn get_counts(&self)->(u32,u32)
+    {
+        (self.folder_count,self.file_count)
+    }
+
+//non utilisé...
+/*
     pub fn display(&self)
     {
         let nouvelle_racine = Path::new(&self.name);
@@ -74,27 +95,39 @@ impl Fold{
             val.display_recurse(&nouvelle_racine);
         }
     }    
-
-    pub fn gen_copy(&self,dst : &Fold)
+*/
+    pub fn gen_copy(&self,dst : &Fold,sender : &Sender<OsString>)
     {
-        println!("searching files/folders to copy to destination");
+        println!("INFO compare to find new/modify in {:?}",&self.name);
         let racine_src = Path::new(&self.name);
         let racine_dst = Path::new(&dst.name);
-        gen_copy_recurse(&self,&dst,&racine_src,&racine_dst)
+        let start = SystemTime::now();
+        let res = gen_copy_recurse(&self,&dst,&racine_src,&racine_dst,sender);
+        let end = SystemTime::now();
+        let tps = end.duration_since(start).expect("ERROR computing duration!");
+        println!("INFO duration to find copies from {:?} in {:?}", &self.name, tps);
+        res
+
     }
  
-    pub fn gen_remove(&self,src : &Fold)
+    pub fn gen_remove(&self,src : &Fold,sender : &Sender<OsString>)
     {
-        println!("searching files/folders to remove from destination");
+        println!("INFO compare to find what to remove from {:?}",&self.name);
+        println!("INFO searching files/folders to remove from destination");
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&self.name);
-        gen_remove_recurse(&src,&self,&racine_src,&racine_dst)
+        let start = SystemTime::now();
+        let res = gen_remove_recurse(&src,&self,&racine_src,&racine_dst,sender);
+        let end = SystemTime::now();
+        let tps = end.duration_since(start).expect("ERROR computing duration!");
+        println!("INFO duration to find deletes from {:?} in {:?}", &self.name, tps);
+        res
     }
 
 
 }
 
-fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
+fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,sender : &Sender<OsString>)
 {
     //boucle sur self et destination en parallèle et trouve 
     //  -les Folds sur self et pas sur destination -> xcopy
@@ -110,10 +143,10 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
         match dst.folds.get(key_src){
             None => {
                 //n'existe pas en destination -> générer une copie récursive
+                let chemin_src = Path::new(&racine_src).join(&key_src);
                 let chemin_dst = Path::new(&racine_dst);
-                let chemin_src = Path::new(&racine_src);
                 let cmd = gen_copy_rec(&chemin_src,&chemin_dst);
-                deal_with_cmd(&cmd);
+                deal_with_cmd(cmd,sender);
             },
             Some(val_dst) => {
                 if val_dst.forbidden 
@@ -125,7 +158,7 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
                 //existe en source et destination  -> Ok on procède pour leur contenu
                 let new_racine_src = Path::new(&racine_src).join(&key_src);
                 let new_racine_dst = Path::new(&racine_dst).join(&key_src);                
-                gen_copy_recurse(&val_src,&val_dst,&new_racine_src,&new_racine_dst);
+                gen_copy_recurse(&val_src,&val_dst,&new_racine_src,&new_racine_dst,sender);
             }
         }
     }
@@ -139,7 +172,7 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
                 let chemin_src = Path::new(&racine_src).join(&key_src);
                 let chemin_dst = Path::new(&racine_dst);
                 let cmd = gen_copy(&chemin_src,&chemin_dst);
-                deal_with_cmd(&cmd);
+                deal_with_cmd(cmd,sender);
             },
             Some(val_dst) => {
                 //existe en source et destination  -> les comparer
@@ -148,14 +181,14 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
                     let chemin_src = Path::new(&racine_src).join(&key_src);
                     let chemin_dst = Path::new(&racine_dst);
                     let cmd = gen_copy(&chemin_src,&chemin_dst);
-                    deal_with_cmd(&cmd);
+                    deal_with_cmd(cmd,sender);
                 }
             }
         }
     }
 }
 
-fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
+fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,sender : &Sender<OsString>)
 {
     //boucle sur self et source en parallèle et trouve 
     //  -les Folds sur destination et pas sur self -> rd
@@ -171,8 +204,13 @@ fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
             None => {
                 //n'existe pas en destination -> générer un remove directory
                 let chemin = Path::new(&racine_dst).join(&key_dst);
-                let cmd = gen_rd(&chemin);
-                deal_with_cmd(&cmd);
+                let mut cmd = gen_rd(&chemin);
+                let d = val_dst.get_counts();
+                if d.0 > 10 || d.1 > 100
+                {
+                    cmd = get_confirmation(&chemin,d,&cmd);
+                }
+                deal_with_cmd(cmd,sender);
             },
             Some(val_src) => {
                 if val_src.forbidden 
@@ -184,7 +222,7 @@ fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
                 //existe en source et destination  -> Ok on procède pour leur contenu
                 let new_racine_src = Path::new(&racine_src).join(&key_dst);
                 let new_racine_dst = Path::new(&racine_dst).join(&key_dst);                
-                gen_remove_recurse(&val_src,&val_dst,&new_racine_src,&new_racine_dst);
+                gen_remove_recurse(&val_src,&val_dst,&new_racine_src,&new_racine_dst,sender);
             }
         }
     }
@@ -197,7 +235,7 @@ fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
                 //n'existe pas en destination -> générer un delete
                 let chemin = Path::new(&racine_dst).join(&key_dst);
                 let cmd = gen_del(&chemin);
-                deal_with_cmd(&cmd);
+                deal_with_cmd(cmd,sender);
             },
             Some(_) => {
                 //existe en source et destination  -> s'ils sont différent c'est le gen_copy qui a généré la copie
@@ -208,9 +246,12 @@ fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path)
 }
 
 
-fn deal_with_cmd(cmd : &OsString)
+fn deal_with_cmd(cmd : OsString,sender : &Sender<OsString>)
 {
-    println!("{:?}",cmd);
+    if sender.send(cmd).is_err()
+    {
+        println!("Erreur sending command");
+    }
 }
 
 
@@ -222,10 +263,10 @@ pub fn gen_copy(src: &Path, dst: &Path)->OsString
     res.push(r###"" ""###);
     res.push(dst);
     res.push(r###"" /H /Y /K /R "###);
-    // /H   copie aussi les fics cach�s
-    // /Y   pas de demande de confirmation
-    // /K   copie aussi les attributs
-    // /R   remplace les fics lecture seule
+    // /H   also copy hidden files
+    // /Y   No confirmation ask to user
+    // /K   copy attributes
+    // /R   replace Read only files
     res
 }
 
@@ -238,12 +279,12 @@ pub fn gen_copy_rec(src: &Path, dst: &Path)->OsString
     res.push(r###"" ""###);    
     res.push(dst);
     res.push(r###"" /E /I /H /Y /K /R "###);
-    // /E   copie les sous-Folds vides
-    // /I   destination = r�pertoire si plusieurs fics en sources
-    // /H   copie aussi les fics cach�s
-    // /Y   pas de demande de confirmation
-    // /K   copie aussi les attributs
-    // /R   remplace les fics lecture seule
+    // /E   copy empty sub folders
+    // /I   choose folder as destination if many files in source
+    // /H   also copy hidden files
+    // /Y   No confirmation ask to user
+    // /K   copy attributes
+    // /R   replace Read only files
     res
 }
 
@@ -253,8 +294,8 @@ pub fn gen_del(dst: &Path)->OsString
     res.push(r###"DEL ""###);
     res.push(dst);
     res.push(r###"" /F /A "###);
-    //   /F   force effacement lecture seule   
-    //   /A   efface quemque soit les attributs
+    //   /F   Force delete of read only
+    //   /A   delete whatever attributes 
     res
 }
 
@@ -264,7 +305,28 @@ pub fn gen_rd(dst: &Path)->OsString
     res.push(r###"RD /S /Q ""###);
     res.push(dst);
     res.push(r###"""###);
-    //   /S   récursif
-    //   /Q   pas besoin de confirmation
+    //   /S   recursive
+    //   /Q   No confirmation ask to user
+    res
+}
+
+pub fn get_confirmation(dst: &Path, c:(u32,u32), cmd : &OsString)->OsString
+{
+    let mut res = OsString::new();
+    let s = format!("Echo {:?} Contains {} folders and {}  files.\n",dst,c.0,c.1);
+    res.push(s);
+    /*res.push("Echo ");
+    res.push(dst);
+    res.push("Contains ");
+    res.push(c.0);
+    res.push(" folders and ");
+    res.push(c.1);
+    res.push(" files.\n");*/
+    res.push("Echo Please confirm deletation\n");
+    res.push("Echo Y to Delete\n");
+    res.push("Echo N to keep\n");
+    res.push("choice /C YN\n");
+    res.push("if '%ERRORLEVE%'=='1' ");
+    res.push(cmd);
     res
 }
