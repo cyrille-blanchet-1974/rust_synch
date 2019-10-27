@@ -29,6 +29,13 @@ impl Place
             Place::Dst => "destination".to_string(),
         }
     }
+    pub fn clone(&self)->Place
+    {
+        match self{
+            Place::Src => Place::Src,
+            Place::Dst => Place::Dst,
+        }
+    }
 }
 
 fn pause()
@@ -93,7 +100,7 @@ fn start_read_thread(what : Place,sender : Sender<(Place,Fold)>, data : Vec<Path
             let end = SystemTime::now();
             tps += end.duration_since(start).expect("ERROR computing duration!");
             //send data to join thread thru MPSC chanel 
-            if sender.send((Place::Src,src)).is_err()
+            if sender.send((what.clone(),src)).is_err()
             {
                 println!("ERROR in start_read_{}",what.to_string());
                 return;
@@ -159,8 +166,8 @@ fn start_joiner(receiver : Receiver<(Place,Fold)>,sender_comp_p : Sender<(Arc<Fo
                     nb_src +=1;
                 },
                 Place::Dst => {
-                dst.push_back(data);
-                nb_dst +=1;
+                    dst.push_back(data);
+                    nb_dst +=1;
                 },
             }
             if !src.is_empty() && !dst.is_empty()
