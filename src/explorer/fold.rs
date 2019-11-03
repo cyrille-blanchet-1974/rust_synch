@@ -57,7 +57,7 @@ impl Fold{
         let d = fold.get_counts();
         self.folder_count += d.0; 
         self.file_count += d.1;
-        self.folds.insert(name, fold);
+        self.folds.insert(to_lower(&name), fold);
     }
 
     pub fn add_fic(&mut self, fic : Fic)
@@ -65,7 +65,7 @@ impl Fold{
         let n = Path::new(&fic.name);
         let name = (n.file_name().unwrap()).to_os_string();
         self.file_count +=1;
-        self.fics.insert(name, fic);
+        self.fics.insert(to_lower(&name), fic);
     }
 
     pub fn get_counts(&self)->(u32,u32)
@@ -143,7 +143,7 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,se
         match dst.folds.get(key_src){
             None => {
                 //n'existe pas en destination -> générer une copie récursive
-                let chemin_src = Path::new(&racine_src).join(&key_src);
+                let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                 let chemin_dst = Path::new(&racine_dst);
                 let cmd = gen_copy_rec(&chemin_src,&chemin_dst);
                 deal_with_cmd(cmd,sender);
@@ -156,8 +156,8 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,se
                     continue;
                 }
                 //existe en source et destination  -> Ok on procède pour leur contenu
-                let new_racine_src = Path::new(&racine_src).join(&key_src);
-                let new_racine_dst = Path::new(&racine_dst).join(&key_src);                
+                let new_racine_src = Path::new(&racine_src).join(&(val_src.name));
+                let new_racine_dst = Path::new(&racine_dst).join(&(val_src.name));
                 gen_copy_recurse(&val_src,&val_dst,&new_racine_src,&new_racine_dst,sender);
             }
         }
@@ -169,7 +169,7 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,se
         match dst.fics.get(key_src){
             None => {
                 //n'existe pas en destination -> générer une copie
-                let chemin_src = Path::new(&racine_src).join(&key_src);
+                let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                 let chemin_dst = Path::new(&racine_dst);
                 let cmd = gen_copy(&chemin_src,&chemin_dst);
                 deal_with_cmd(cmd,sender);
@@ -178,7 +178,7 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,se
                 //existe en source et destination  -> les comparer
                 if val_src.neq(val_dst)
                 {
-                    let chemin_src = Path::new(&racine_src).join(&key_src);
+                    let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                     let chemin_dst = Path::new(&racine_dst);
                     let cmd = gen_copy(&chemin_src,&chemin_dst);
                     deal_with_cmd(cmd,sender);
@@ -203,7 +203,7 @@ fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,
         match src.folds.get(key_dst){
             None => {
                 //n'existe pas en destination -> générer un remove directory
-                let chemin = Path::new(&racine_dst).join(&key_dst);
+                let chemin = Path::new(&racine_dst).join(&(val_dst.name));
                 let mut cmd = gen_rd(&chemin);
                 let d = val_dst.get_counts();
                 if d.0 > 10 || d.1 > 100
@@ -220,20 +220,20 @@ fn gen_remove_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,
                     continue;
                 }
                 //existe en source et destination  -> Ok on procède pour leur contenu
-                let new_racine_src = Path::new(&racine_src).join(&key_dst);
-                let new_racine_dst = Path::new(&racine_dst).join(&key_dst);                
+                let new_racine_src = Path::new(&racine_src).join(&(val_dst.name));
+                let new_racine_dst = Path::new(&racine_dst).join(&(val_dst.name));
                 gen_remove_recurse(&val_src,&val_dst,&new_racine_src,&new_racine_dst,sender);
             }
         }
     }
 
     //  -les fics sur destination et pas sur self -> del
-    for (key_dst, _val_dst) in dst.fics.iter()
+    for (key_dst, val_dst) in dst.fics.iter()
     {
         match src.fics.get(key_dst){
             None => {
                 //n'existe pas en destination -> générer un delete
-                let chemin = Path::new(&racine_dst).join(&key_dst);
+                let chemin = Path::new(&racine_dst).join(&(val_dst.name));
                 let cmd = gen_del(&chemin);
                 deal_with_cmd(cmd,sender);
             },
@@ -329,4 +329,22 @@ pub fn get_confirmation(dst: &Path, c:(u32,u32), cmd : &OsString)->OsString
     res.push("if '%ERRORLEVE%'=='1' ");
     res.push(cmd);
     res
+}
+
+pub fn to_lower(name : &OsString)->OsString
+{
+    let res : OsString;
+    let clone = OsString::from(name);
+    match clone.into_string()
+    {
+        Ok(a) =>{
+            let a = a.to_lowercase();
+            res=OsString::from(a);
+        },
+        Err(a)=>{
+            res=a;
+        }
+    }
+    //println!("{:?}=>{:?}",&name,&res);
+    return res;
 }
