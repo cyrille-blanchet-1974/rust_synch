@@ -45,9 +45,12 @@ impl Fic{
         {
             return true;
         }*/
-        if self.modify != f.modify
+        if self.len != 0 
         {
-            return true;
+            if self.modify != f.modify
+            {
+                return true;
+            }
         }
         false
     }
