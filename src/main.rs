@@ -4,7 +4,7 @@ mod explorer;
 use paramcli::*;
 use explorer::*;
 
-use std::io::{self,Write};
+use std::io::{Write,BufWriter};
 use std::collections::VecDeque;
 use std::path::{Path,PathBuf};
 use std::ffi::OsString;
@@ -36,13 +36,6 @@ impl Place
             Place::Dst => Place::Dst,
         }
     }
-}
-
-fn pause()
-{
-    println!("Pause: press Enter");
-    let mut _res = String::new();
-    io::stdin().read_line(&mut _res).expect("Failed to read line");
 }
 
 /**
@@ -265,7 +258,7 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
         let mut tps = Duration::new(0,0);
         println!("INFO start writer");
         let mut nb_ecr = 0;
-        let mut writer = 
+        let writer = 
         match File::create(output)
         {
                 Err(e) =>{
@@ -277,7 +270,8 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
                     fichier
                 }
         };
-        match writer.write_all("@echo off\n".as_bytes()) 
+        let mut buffer_writer = BufWriter::new(writer);
+        match buffer_writer.write_all("@echo off\n".as_bytes()) 
         {
             Err(e) =>{
                 println!("Erreur écriture fichier {:?}",e);
@@ -291,7 +285,7 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
         //todo: use BufWrite
         for data in receiver{
             let start = SystemTime::now();
-            match writer.write_all(data.to_str().unwrap().as_bytes()) 
+            match buffer_writer.write_all(data.to_str().unwrap().as_bytes()) 
             {
                 Err(e) =>{
                     println!("Erreur écriture fichier {:?}",e);
@@ -302,7 +296,7 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
                     nb_ecr +=1;
                 }
             } 
-            match writer.write_all("\n".as_bytes()) 
+            match buffer_writer.write_all("\n".as_bytes()) 
             {
                 Err(e) =>{
                     println!("Erreur écriture fichier {:?}",e);
@@ -334,48 +328,10 @@ fn main() {
     if param.verbose
     {
         println!("params: {:?}", param );
-        pause();
     }
-    /* 
-    cargo run /src:c:\ /dst:"f:\windows XP" /fic:run.cmd /multithread /append /verbose /Crypt /Ignore_Err
-    -> params: Paramcli { source: "c:\\", destination: "f:\\windows XP", fic_out: "run.cmd", multithread: true, append: true, verbose: true, crypt: true, ignore_err: true }
-
-    cargo run /src:c:\ /dst:"f:\windows XP" /fic:run.cmd 
-    -> params: Paramcli { source: "c:\\", destination: "f:\\windows XP", fic_out: "run.cmd", multithread: false, append: false, verbose: false, crypt: false, ignore_err: false }
-    */
     //list of sources and destinations
     let mut src = Vec::new();
     let mut dst = Vec::new();
-    //local
-    /*
-    src.push(Path::new("c:\\").to_path_buf());
-    src.push(Path::new("d:\\").to_path_buf());
-
-    dst.push(Path::new("F:\\").to_path_buf());
-    dst.push(Path::new("F:\\").to_path_buf());
-    */
-    //pc adp
-    /*
-    src.push(Path::new("C:\\dev").to_path_buf());
-    dst.push(Path::new("D:\\pc00916566\\dev").to_path_buf());
-    src.push(Path::new("C:\\users\\cyblanc").to_path_buf());
-    dst.push(Path::new("D:\\pc00916566\\Users\\cyblanc").to_path_buf());
-    src.push(Path::new("C:\\Users\\cyblanc\\Desktop").to_path_buf());
-    dst.push(Path::new("D:\\pc00916566\\Bureau").to_path_buf());
-    src.push(Path::new("C:\\cvs2git").to_path_buf());
-    dst.push(Path::new("D:\\pc00916566\\cvs2git").to_path_buf());
-    */
-    //test 
-    /*
-    src.push(Path::new("F:\\dev\\rust\\test_data_synch\\src").to_path_buf());
-    dst.push(Path::new("F:\\dev\\rust\\test_data_synch\\dst").to_path_buf());
-    */
-    //test usb
-    /*
-    src.push(Path::new("C:\\").to_path_buf());
-    dst.push(Path::new("G:\\").to_path_buf());
-    */
-
     //MPSC chanels
       //read threads to join thread
     let (sender_read_to_join, receiver_read_to_join) = channel();
@@ -386,22 +342,6 @@ fn main() {
       //comp threads to write output
     let (sender_writer, receiver_writer) = channel();
 
-    //local 
-    /*
-    let hwriter = start_writer(receiver_writer,Path::new("F:\\sortie.cmd").to_path_buf());
-    */
-    //pc adp
-    /* 
-    let hwriter = start_writer(receiver_writer,Path::new("sortie.cmd").to_path_buf());
-    */
-    //test
-    /*
-    let hwriter = start_writer(receiver_writer,Path::new("F:\\dev\\rust\\test_data_synch\\sortie.cmd").to_path_buf());
-    */
-    //test usb
-    /*
-    let hwriter = start_writer(receiver_writer,Path::new("F:\\sortie.cmd").to_path_buf());
-    */
     //start writer thread
     let hwriter = start_writer(receiver_writer,Path::new(&param.fic_out).to_path_buf());
     //get data for readers
@@ -429,5 +369,4 @@ fn main() {
     hcompm.join().unwrap();
     hwriter.join().unwrap();
 
-    //pause();
 }
