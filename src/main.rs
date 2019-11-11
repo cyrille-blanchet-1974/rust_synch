@@ -282,7 +282,17 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
                 nb_ecr +=1;        
             }
         } 
-        //todo: use BufWrite
+        match buffer_writer.write_all("chcp 65001\n".as_bytes()) //utf8 codepage
+        {
+            Err(e) =>{
+                println!("Erreur écriture fichier {:?}",e);
+                return;
+            },
+            Ok(_) =>
+            {              
+                nb_ecr +=1;        
+            }
+        } 
         for data in receiver{
             let start = SystemTime::now();
             match buffer_writer.write_all(data.to_str().unwrap().as_bytes()) 
