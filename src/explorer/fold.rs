@@ -7,6 +7,9 @@ use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::time::SystemTime;
 
+extern crate chrono;
+use chrono::offset::Utc;
+use chrono::DateTime;
 
 pub struct Fold
 {
@@ -176,7 +179,25 @@ fn gen_copy_recurse(src : &Fold,dst : &Fold,racine_src:&Path,racine_dst:&Path,se
             },
             Some(val_dst) => {
                 //existe en source et destination  -> les comparer
-                if val_src.neq(val_dst)
+                let mut same = true;
+                match val_src.comp(val_dst)
+                {
+                    FicComp::Same => {
+                        same=true;
+                    },
+                    FicComp::SizeChange(t1,t2) => {
+                        same= false;
+                        //TODO: verbose only
+                        println!("DEBUG diff {:?} différence de taille {}/{}",val_src.name,t1,t2);
+                    },
+                    FicComp::DateChange(d1,d2) => {
+                        let m1: DateTime<Utc> = d1.into();
+                        let m2: DateTime<Utc> = d2.into();
+                        //TODO: verbose only
+                        println!("DEBUG diff    {:?} différence de date {}/{}",val_src.name,m1.format("%d/%m/%Y %T"),m2.format("%d/%m/%Y %T"));
+                    }
+                }
+                if !same
                 {
                     let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                     let chemin_dst = Path::new(&racine_dst);

@@ -9,6 +9,17 @@ pub struct Fic
     pub name : OsString,
 }
 
+//File comparison
+#[derive(Copy, Clone)]
+pub enum FicComp
+{
+    Same,
+    SizeChange(u64,u64),
+    DateChange(SystemTime,SystemTime),
+}
+
+
+
 impl Fic{
     pub fn new(p : &Path)->Option<Fic>
     {
@@ -34,7 +45,7 @@ impl Fic{
             }
         }
     }
-
+/*
     pub fn neq(&self,f : &Fic)->bool    
     {
         if self.len != f.len
@@ -50,10 +61,35 @@ impl Fic{
         {
             if self.modify != f.modify
             {
-                println!("DEBUG diff    {:?} différence de date {:?}/{:?}",self.name,self.modify,f.modify);//TODO: verbos only
+                let m1: DateTime<Utc> = self.modify.into();
+                let m2: DateTime<Utc> = f.modify.into();
+                println!("DEBUG diff    {:?} différence de date {}/{}",self.name,m1.format("%d/%m/%Y %T"),m2.format("%d/%m/%Y %T"));//TODO: verbos only
                 return true;
             }
         }
         false
+    }*/
+
+    pub fn comp(&self,f : &Fic)->FicComp
+    {
+        if self.len != f.len
+        {
+            return FicComp::SizeChange(self.len,f.len);
+        }
+        /*if self.name != f.name 
+        {
+            return true;
+        }*/
+        if self.len != 0 
+        {
+            if self.modify != f.modify
+            {
+                return FicComp::DateChange(self.modify,f.modify);
+            }
+        }
+        FicComp::Same
     }
 }
+
+
+
