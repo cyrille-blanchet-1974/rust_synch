@@ -39,6 +39,7 @@ impl Fic{
     {
         if self.len != f.len
         {
+            println!("DEBUG diff {:?} différence de taille {}/{}",self.name,self.len,f.len);//TODO: verbos only
             return true;
         }
         /*if self.name != f.name 
@@ -49,6 +50,7 @@ impl Fic{
         {
             if self.modify != f.modify
             {
+                println!("DEBUG diff    {:?} différence de date {:?}/{:?}",self.name,self.modify,f.modify);//TODO: verbos only
                 return true;
             }
         }
