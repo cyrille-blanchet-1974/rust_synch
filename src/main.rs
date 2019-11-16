@@ -79,8 +79,9 @@ impl Place
  * 
  */
 
-fn start_read_thread(what : Place,sender : Sender<(Place,Fold)>, data : Vec<PathBuf>) -> JoinHandle<()>
+fn start_read_thread(what : Place,sender : Sender<(Place,Fold)>, data : Vec<PathBuf>, opt : &Options) -> JoinHandle<()>
 {
+    let mut explorer = Explorer::new(opt);
     let handle = spawn( move || {
         //timings: elapse count all and the other counts only acting time
         let start_elapse = SystemTime::now();
@@ -88,7 +89,6 @@ fn start_read_thread(what : Place,sender : Sender<(Place,Fold)>, data : Vec<Path
         //number of item receive from chanel
         let mut nb = 0;
         println!("INFO start reading {} folders in {}s",&data.len(),what.to_string());
-        let mut explorer = Explorer::new();
         //iterate on sources
         for d in data{
             //read time only
@@ -117,9 +117,9 @@ fn start_read_thread(what : Place,sender : Sender<(Place,Fold)>, data : Vec<Path
  * and the full contain of one source (folders and files)
  * the second parameter is a list of source to read
 */
-fn start_read_src(sender : Sender<(Place,Fold)>, data : Vec<PathBuf>) -> JoinHandle<()>
+fn start_read_src(sender : Sender<(Place,Fold)>, data : Vec<PathBuf>, opt : &Options) -> JoinHandle<()>
 {
-    start_read_thread(Place::Src,sender,data)
+    start_read_thread(Place::Src,sender,data,opt)
 }
 
 /** 
@@ -128,9 +128,9 @@ fn start_read_src(sender : Sender<(Place,Fold)>, data : Vec<PathBuf>) -> JoinHan
  * and the full contain of one destination (folders and files)
  * the second parameter is a list of destinations to read
 */
-fn start_read_dst(sender : Sender<(Place,Fold)>, data : Vec<PathBuf>) -> JoinHandle<()>
+fn start_read_dst(sender : Sender<(Place,Fold)>, data : Vec<PathBuf>, opt : &Options) -> JoinHandle<()>
 {
-    start_read_thread(Place::Dst,sender,data)
+    start_read_thread(Place::Dst,sender,data,opt)
 }
 
 /** 
@@ -346,6 +346,8 @@ fn main() {
     {
         println!("params: {:?}", param );
     }
+    //options for explorer and comparer
+    let opt = param.to_options();
     //list of sources and destinations
     let mut src = Vec::new();
     let mut dst = Vec::new();
@@ -362,7 +364,6 @@ fn main() {
     //start writer thread
     let hwriter = start_writer(receiver_writer,Path::new(&param.fic_out).to_path_buf());
     //get data for readers
-    let opt = param.to_options();
     for s in param.source {
         src.push(Path::new(&s).to_path_buf());    
     }
@@ -375,8 +376,8 @@ fn main() {
     //start join thread
     let hjoin = start_joiner(receiver_read_to_join,sender_comp_m,sender_comp_p);
     //start read threads
-    let hreadsrc = start_read_src(sender_read_to_join.clone(),src);
-    let hreaddst = start_read_dst(sender_read_to_join,dst); 
+    let hreadsrc = start_read_src(sender_read_to_join.clone(),src,&opt);
+    let hreaddst = start_read_dst(sender_read_to_join,dst,&opt); 
 
     //wait for threads to stop
     hreadsrc.join().unwrap();
