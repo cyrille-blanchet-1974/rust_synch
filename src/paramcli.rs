@@ -26,6 +26,10 @@ impl Paramcli{
         let mut conf= String::new();
 
         let args: Vec<String> = env::args().skip(1).collect();
+        if args.len() == 0
+        {
+            help();
+        }
         for arg in args {
             println!("{}",arg);
             if arg == "/?" ||  arg == "-?" || arg.to_lowercase() == "/help" || arg.to_lowercase() == "-help"
@@ -73,12 +77,33 @@ impl Paramcli{
             let readconf = Readconf::new(&conf);
             src = readconf.source;
             dst = readconf.destination;
-            //TODO: when data incorrect display a more friendly message
-            assert_eq!(src.len(),dst.len());
-            assert_ne!(src.len(),0);
-            for i in 1..src.len() {
-                assert_ne!(src.get(i),dst.get(i));
+        }
+        //checks
+        if src.len() != dst.len()
+        {
+            println!("ERROR! number of source and destination do not match!");
+            println!("--------------------------------------------------");
+            help();
+        }
+        if src.len() == 0
+        {
+            println!("ERROR! nothing to synch!");
+            println!("--------------------------------------------------");
+            help();
+        }
+        for i in 1..src.len() {
+            if src.get(i) == dst.get(i)
+            {
+                println!("ERROR! src equals to destination {:?}",src.get(i));
+                println!("--------------------------------------------------");
+                help();    
             }
+        }
+        if fic.is_empty()
+        {
+            println!("ERROR! not output script provided");
+            println!("--------------------------------------------------");
+            help();
         }
         Paramcli{
             source: src,
@@ -112,16 +137,19 @@ fn get_param(arg : String) -> String
 
 fn help()
 {
-	println!("{}","Syntaxe: synch /src:dossier_source /des:dossier_cible /fic:fichier_sortie.bat [/append] [/multithread] [/verbose] [/crypt] [/ignore_err]");
-    println!("{}","------------------------------------");
-    println!("{}","dossier_source: Dossier maître");
-    println!("{}","dossier_cible: Dossier esclave (deviendra un clone de source)");
-    println!("{}","fichier_sortie.bat: fichier bat qui recevra les commandes pour cloner source en cible");
-    println!("{}","/multithread: Option pour mode multithread");
-	println!("{}","/append: Indique si on ajoue le résulat au fichier de sortie (défaut = écraser)");
-	println!("{}","/verbose: affiche a l'écran les information indiquant les différences sources/cible");
-	println!("{}","/crypt: Si la destination fait exactement 4096 octet de moins concidérer comme identique");
-	println!("{}","/ignore_err: ne pas s'arrêter en cas d'erreur");
-    println!("{}","---------------------------------------------------------------------------");
+	println!("syntax 1 : synch /src:folder_src /dst:folder_dst /fic:output_script [/verbose] [/crypt] [/ignore_err]");
+    println!("syntax 2 : synch /conf:conf_file                 /fic:output_script [/verbose] [/crypt] [/ignore_err]");
+    println!("paramerters between [] are optionnals");
+    println!("------------------------------------");
+    println!("folder_src: folder to be duplicate");
+    println!("folder_dst: destination folder (will become a perfect clone of folder_src)");
+    println!("conf_file: file containing multiple sources and destinations folders *");
+    println!("output_script: script filte where we write commands to clone src to dst");
+	println!("/verbose: display more information on the screen");
+	println!("/crypt: if a source file is exactly 4096 bytes less than the destination one then concider them equals");
+	println!("/ignore_err: do not stop in case of error");
+    println!("---------------------------------------------------------------------------");
+    println!("* conf_file format: multiple lines working in pairs");
+    println!("lines starting with 'source='  or 'destination='");
     std::process::exit(0);
 }

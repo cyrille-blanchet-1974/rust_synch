@@ -335,8 +335,7 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
  * entry point of app
  */
 fn main() {
-    //pause();
-    //todo: put param in static so we can access global props everywhere
+    println!("synch 1.0 (2019)");
     let param = Paramcli::new();
     if param.verbose
     {
