@@ -1,5 +1,4 @@
-pub mod fold;
-pub use fold::*;
+pub use super::fold::*;
 
 use std::fs;
 use std::path::Path;

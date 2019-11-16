@@ -1,5 +1,4 @@
-mod fic;
-pub use fic::*;
+pub use super::fic::*;
 
 use std::ffi::OsString;
 use std::path::Path;

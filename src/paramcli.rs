@@ -1,5 +1,4 @@
-pub mod lireconf;
-pub use lireconf::*;
+pub use super::lireconf::*;
 
 use std::env;
 
@@ -9,8 +8,6 @@ pub struct Paramcli
     pub source: Vec<String>,
     pub destination: Vec<String>,
     pub fic_out : String,
-//    pub multithread : bool,
-//    pub append : bool,
     pub verbose : bool,
     pub crypt : bool,
     pub ignore_err : bool,
@@ -21,8 +18,6 @@ impl Paramcli{
     pub fn new()->Paramcli
     {
         let mut fic= String::new();
-//        let mut mth = false;
-//        let mut app = false;
         let mut ver = false;
         let mut cry = false;
         let mut ign = false;
@@ -57,16 +52,6 @@ impl Paramcli{
                 fic = get_param(arg);
                 continue;
             }
-            /*if arg.to_lowercase() == "/multithread"
-            {
-                mth = true;
-                continue;
-            }*/
-            /*if arg.to_lowercase() == "/append"
-            {
-                app = true;
-                continue;
-            }*/
             if arg.to_lowercase() == "/verbose"
             {
                 ver = true;
@@ -88,14 +73,17 @@ impl Paramcli{
             let lireconf = Lireconf::new(&conf);
             src = lireconf.source;
             dst = lireconf.destination;
+            //TODO: when data incorrect display a more friendly message
+            assert_eq!(src.len(),dst.len());
+            assert_ne!(src.len(),0);
+            for i in 1..src.len() {
+                assert_ne!(src.get(i),dst.get(i));
+            }
         }
-        //TODO: check src <> dst et size ==
         Paramcli{
             source: src,
             destination: dst,
             fic_out : fic,
-            //multithread : mth,
-            //append : app,
             verbose : ver,
             crypt : cry,
             ignore_err : ign,

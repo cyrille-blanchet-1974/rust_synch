@@ -1,4 +1,7 @@
+mod lireconf;
 mod paramcli;
+mod fic;
+mod fold;
 mod explorer;
 
 use paramcli::*;
