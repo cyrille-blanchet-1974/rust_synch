@@ -3,6 +3,16 @@ pub use super::readconf::*;
 use std::env;
 
 #[derive(Debug)]
+pub struct Options
+{
+    pub verbose : bool,
+    pub crypt : bool,
+    pub ignore_err : bool,
+}
+
+
+
+#[derive(Debug)]
 pub struct Paramcli
 {
     pub source: Vec<String>,
@@ -113,6 +123,18 @@ impl Paramcli{
             crypt : cry,
             ignore_err : ign,
             config : conf
+        }
+    }
+    /**
+     * return a new Paramcli clone of self 
+     * but without source, destination, fic_out and config
+     */
+    pub fn to_options(&self)->Options
+    {
+        Options{
+            verbose : self.verbose,
+            crypt : self.crypt,
+            ignore_err : self.ignore_err,
         }
     }
 }

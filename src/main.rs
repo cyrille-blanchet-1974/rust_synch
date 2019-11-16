@@ -3,9 +3,10 @@ mod paramcli;
 mod fic;
 mod fold;
 mod explorer;
+mod comparer;
 
-use paramcli::*;
 use explorer::*;
+use comparer::*;
 
 use std::io::{Write,BufWriter};
 use std::collections::VecDeque;
@@ -202,8 +203,9 @@ fn start_joiner(receiver : Receiver<(Place,Fold)>,sender_comp_p : Sender<(Arc<Fo
  * commands are sent into a output chanel
  * these chanel goes to a thread who is in charge of writing them to outputfile
  */
-fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsString>) -> JoinHandle<()>
+fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsString>, opt : &Options) -> JoinHandle<()>
 {
+    let cmp = Comparer::new(opt,sender);
     let handle = spawn( move || {
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0,0);
@@ -211,7 +213,8 @@ fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsStr
         let mut nb_comp=0;
         for (s,d) in receiver{
             let start = SystemTime::now();
-            s.gen_copy(&d,&sender);
+            //s.gen_copy(&d,&sender);
+            cmp.gen_copy(&s,&d);
             nb_comp +=1;
             let end = SystemTime::now();
             tps += end.duration_since(start).expect("ERROR computing duration!");
@@ -227,8 +230,9 @@ fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsStr
  * quite the same as previous thread
  * but generate remove commands for data in destination only
  */
-fn start_comp_m(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsString>) -> JoinHandle<()>
+fn start_comp_m(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsString>, opt : &Options) -> JoinHandle<()>
 {
+    let cmp = Comparer::new(opt,sender);
     let handle = spawn( move || {
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0,0);
@@ -236,7 +240,8 @@ fn start_comp_m(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsStr
         let mut nb_comp=0;
         for (s,d) in receiver{
             let start = SystemTime::now();
-            d.gen_remove(&s,&sender);
+            //d.gen_remove(&s,&sender);
+            cmp.gen_remove(&s,&d);
             nb_comp +=1;
             let end = SystemTime::now();
             tps += end.duration_since(start).expect("ERROR computing duration!");
@@ -357,7 +362,7 @@ fn main() {
     //start writer thread
     let hwriter = start_writer(receiver_writer,Path::new(&param.fic_out).to_path_buf());
     //get data for readers
-    //TODO: where param in static move this in start_read_xxx
+    let opt = param.to_options();
     for s in param.source {
         src.push(Path::new(&s).to_path_buf());    
     }
@@ -365,8 +370,8 @@ fn main() {
         dst.push(Path::new(&d).to_path_buf());    
     }
     // start compare threads
-    let hcompp = start_comp_p(receiver_comp_p, sender_writer.clone());
-    let hcompm = start_comp_m(receiver_comp_m, sender_writer);
+    let hcompp = start_comp_p(receiver_comp_p, sender_writer.clone(),&opt);
+    let hcompm = start_comp_m(receiver_comp_m, sender_writer,&opt);
     //start join thread
     let hjoin = start_joiner(receiver_read_to_join,sender_comp_m,sender_comp_p);
     //start read threads

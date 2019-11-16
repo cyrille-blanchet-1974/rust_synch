@@ -70,12 +70,39 @@ impl Fic{
         false
     }*/
 
-    pub fn comp(&self,f : &Fic)->FicComp
+    pub fn comp(&self,f : &Fic, crypt: bool)->FicComp
     {
-        if self.len != f.len
+        if crypt
         {
-            return FicComp::SizeChange(self.len,f.len);
+             //host use crypting
+             //source is not crypted but host seems to think it should be
+             //crypting add 4096 header on each file with a size greater than 4096 bytes 
+             //when asking size host remove 4096 bytes to answer
+             //it do so on my uncrypted source
+             //si if size of destination is above 4096 we must add 4096 to size of source when comparing
+            if f.len >= 4096
+            { //we look at destination size which is the only good one 
+		      //if more than 4096 then we remove them from destination
+              if (self.len+4096) != f.len
+              {
+                return FicComp::SizeChange(self.len,f.len);
+              } 
+            }else
+            {
+		        //less than 4096, no crypting so direct compare
+                 if self.len!=f.len 
+                 {
+                    return FicComp::SizeChange(self.len,f.len);
+                 }
+        	}
         }
+        else
+        {
+            if self.len != f.len
+            {
+                return FicComp::SizeChange(self.len,f.len);
+            }
+        }     
         /*if self.name != f.name 
         {
             return true;
