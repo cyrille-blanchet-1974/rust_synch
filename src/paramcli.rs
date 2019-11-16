@@ -1,4 +1,4 @@
-pub use super::lireconf::*;
+pub use super::readconf::*;
 
 use std::env;
 
@@ -70,9 +70,9 @@ impl Paramcli{
         }
         if !conf.is_empty()
         {
-            let lireconf = Lireconf::new(&conf);
-            src = lireconf.source;
-            dst = lireconf.destination;
+            let readconf = Readconf::new(&conf);
+            src = readconf.source;
+            dst = readconf.destination;
             //TODO: when data incorrect display a more friendly message
             assert_eq!(src.len(),dst.len());
             assert_ne!(src.len(),0);

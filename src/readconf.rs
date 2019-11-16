@@ -3,14 +3,14 @@ use std::io::BufReader;
 use std::io::BufRead;
 
 #[derive(Debug)]
-pub struct Lireconf
+pub struct Readconf
 {
     pub source : Vec<String>,
     pub destination: Vec<String>,
 }
 
-impl Lireconf{
-    pub fn new(ficconf:&String)->Lireconf
+impl Readconf{
+    pub fn new(ficconf:&String)->Readconf
     {
         let mut src= Vec::new();
         let mut dst= Vec::new();
@@ -47,7 +47,7 @@ impl Lireconf{
             }
         }
 
-        Lireconf{
+        Readconf{
             source: src,
             destination: dst,
         }

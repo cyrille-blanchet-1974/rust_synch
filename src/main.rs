@@ -1,4 +1,4 @@
-mod lireconf;
+mod readconf;
 mod paramcli;
 mod fic;
 mod fold;
