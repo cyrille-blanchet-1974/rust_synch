@@ -1,6 +1,7 @@
 pub use super::fold::*;
 pub use super::paramcli::*;
 pub use super::scriptgen::*;
+pub use super::logger::*;
 
 use std::path::Path;
 use std::sync::mpsc::Receiver;
@@ -19,57 +20,38 @@ pub struct Comparer {
     crypt: bool,
     ignore_err: bool,
     to_script: Sender<Command>, //MPSC chanel to send command to be written to output script
+    logger: Logger,
 }
 
 impl Comparer {
-    pub fn new(o: &Options, s: Sender<Command>) -> Comparer {
+    pub fn new(o: &Options, s: Sender<Command>,to_logger: Sender<String>) -> Comparer {
+        let log = Logger::new(o.verbose,to_logger);
         Comparer {
             verbose: o.verbose,
             crypt: o.crypt,
             ignore_err: o.ignore_err,
             to_script: s,
+            logger: log,
         }
     }
 
     pub fn gen_copy(&self, src: &Fold, dst: &Fold) {
-        if self.verbose {
-            println!("INFO compare to find new/modify in {:?}", &src.name);
-        }
+        self.logger.log_verbose(format!("INFO compare to find new/modify in {:?}", &src.name));
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
         let res = self.gen_copy_recurse(&src, &dst, &racine_src, &racine_dst);
-        if self.verbose {
-            let end = SystemTime::now();
-            let tps = end
-                .duration_since(start)
-                .expect("ERROR computing duration!");
-            println!(
-                "INFO duration to find copies from {:?} in {:?}",
-                &src.name, tps
-            );
-        }
+        self.logger.log_timed_verbose(format!("INFO duration to find copies from {:?} ",&src.name), start);
         res
     }
 
     pub fn gen_remove(&self, src: &Fold, dst: &Fold) {
-        if self.verbose {
-            println!("INFO compare to find what to remove from {:?}", &dst.name);
-        }
+        self.logger.log_verbose(format!("INFO compare to find what to remove from {:?}", &dst.name));
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
         let res = self.gen_remove_recurse(&src, &dst, &racine_src, &racine_dst);
-        if self.verbose {
-            let end = SystemTime::now();
-            let tps = end
-                .duration_since(start)
-                .expect("ERROR computing duration!");
-            println!(
-                "INFO duration to find deletes from {:?} in {:?}",
-                &dst.name, tps
-            );
-        }
+        self.logger.log_timed_verbose(format!("INFO duration to find deletes from {:?}",&dst.name), start);
         res
     }
 
@@ -80,9 +62,7 @@ impl Comparer {
         for (key_src, val_src) in src.folds.iter() {
             if val_src.forbidden {
                 //source forder is not accessible. Should ignore it
-                if self.verbose {
-                    println!("{:?}\\{:?} is forbidden -> ignoring", &racine_src, &key_src);
-                }
+                self.logger.log_verbose(format!("{:?}\\{:?} is forbidden -> ignoring", &racine_src, &key_src));
                 if !self.ignore_err {
                     println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_src);
                     std::process::exit(0);
@@ -99,9 +79,7 @@ impl Comparer {
                 Some(val_dst) => {
                     if val_dst.forbidden {
                         //destination forder is not accessible. Should ignore it
-                        if self.verbose {
-                            println!("{:?}\\{:?} is forbidden -> ignoring", &racine_dst, &key_src);
-                        }
+                        self.logger.log_verbose(format!("{:?}\\{:?} is forbidden -> ignoring", &racine_dst, &key_src));
                         if !self.ignore_err {
                             println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_src);
                             std::process::exit(0);
@@ -134,23 +112,13 @@ impl Comparer {
                         }
                         FicComp::SizeChange(t1, t2) => {
                             same = false;
-                            if self.verbose {
-                                println!(
-                                    "DEBUG diff {:?} size difference {}/{}",
-                                    val_src.name, t1, t2
-                                );
-                            }
+                            self.logger.log_verbose(format!("DEBUG diff {:?} size difference {}/{}",val_src.name, t1, t2));
                         }
                         FicComp::DateChange(d1, d2) => {
                             if self.verbose {
                                 let m1: DateTime<Utc> = d1.into();
                                 let m2: DateTime<Utc> = d2.into();
-                                println!(
-                                    "DEBUG diff    {:?}  date difference {}-{}",
-                                    val_src.name,
-                                    m1.format("%d/%m/%Y %T"),
-                                    m2.format("%d/%m/%Y %T")
-                                );
+                                self.logger.log_verbose(format!("DEBUG diff    {:?}  date difference {}-{}",val_src.name,m1.format("%d/%m/%Y %T"),m2.format("%d/%m/%Y %T")));
                             }
                         }
                     }
@@ -170,9 +138,7 @@ impl Comparer {
         for (key_dst, val_dst) in dst.folds.iter() {
             if val_dst.forbidden {
                 //destination forder is not accessible. Should ignore it
-                if self.verbose {
-                    println!("{:?}\\{:?} is forbidden -> ignoring", &racine_dst, &key_dst);
-                }
+                self.logger.log_verbose(format!("{:?}\\{:?} is forbidden -> ignoring", &racine_dst, &key_dst));
                 if !self.ignore_err {
                     println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_dst);
                     std::process::exit(0);
@@ -189,9 +155,7 @@ impl Comparer {
                 Some(val_src) => {
                     if val_src.forbidden {
                         //source forder is not accessible. Should ignore it
-                        if self.verbose {
-                            println!("{:?}\\{:?} is forbidden -> ignoring", &racine_src, &key_dst);
-                        }
+                        self.logger.log_verbose(format!("{:?}\\{:?} is forbidden -> ignoring", &racine_src, &key_dst));
                         if !self.ignore_err {
                             println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_dst);
                             std::process::exit(0);
@@ -241,12 +205,14 @@ pub fn start_thread_comp_p(
     from_join: Receiver<(Arc<Fold>, Arc<Fold>)>,
     to_script: Sender<Command>,
     opt: &Options,
+    to_logger: Sender<String>
 ) -> JoinHandle<()> {
-    let cmp = Comparer::new(opt, to_script);
+    /*
+    let cmp = Comparer::new(opt, to_script, to_logger);
     let handle = spawn(move || {
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
-        println!("INFO start comp_p");
+        cmp.log("INFO start comp_p".to_string());
         let mut nb_comp = 0;
         for (s, d) in from_join {
             let start = SystemTime::now();
@@ -261,9 +227,10 @@ pub fn start_thread_comp_p(
         let tps_elapse = end_elapse
             .duration_since(start_elapse)
             .expect("ERROR computing duration!");
-        println!("INFO {} comp_p in {:?}/{:?}", nb_comp, tps, tps_elapse);
+        cmp.log(format!("INFO {} comp_p in {:?}/{:?}", nb_comp, tps, tps_elapse));
     });
-    handle
+    handle*/
+    start_thread_comp(false,from_join,to_script,opt,to_logger)
 }
 
 /**
@@ -274,12 +241,14 @@ pub fn start_thread_comp_m(
     from_join: Receiver<(Arc<Fold>, Arc<Fold>)>,
     to_script: Sender<Command>,
     opt: &Options,
+    to_logger: Sender<String>
 ) -> JoinHandle<()> {
-    let cmp = Comparer::new(opt, to_script);
+    /*
+    let cmp = Comparer::new(opt, to_script,to_logger);
     let handle = spawn(move || {
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
-        println!("INFO start comp_m");
+        cmp.log("INFO start comp_m".to_string());
         let mut nb_comp = 0;
         for (s, d) in from_join {
             let start = SystemTime::now();
@@ -294,7 +263,56 @@ pub fn start_thread_comp_m(
         let tps_elapse = end_elapse
             .duration_since(start_elapse)
             .expect("ERROR computing duration!");
-        println!("INFO {} comp_m in {:?}/{:?}", nb_comp, tps, tps_elapse);
+        cmp.log(format!("INFO {} comp_m in {:?}/{:?}", nb_comp, tps, tps_elapse));
+    });
+    handle*/
+    start_thread_comp(true,from_join,to_script,opt,to_logger)
+}
+
+fn start_thread_comp(
+	plus : bool,
+    from_join: Receiver<(Arc<Fold>, Arc<Fold>)>,
+    to_script: Sender<Command>,
+    opt: &Options,
+    to_logger: Sender<String>
+) -> JoinHandle<()> {
+	let plus = plus;
+	let name;
+	if plus
+	{
+		name = "comp_p";
+	}
+	else
+	{
+		name = "comp_m";
+	}
+    let cmp = Comparer::new(opt, to_script, to_logger);
+    let handle = spawn(move || {
+        let start_elapse = SystemTime::now();
+        let mut tps = Duration::new(0, 0);
+        cmp.logger.log(format!("INFO start {}",&name));
+        let mut nb_comp = 0;
+        for (s, d) in from_join {
+            let start = SystemTime::now();
+			if plus
+			{
+				cmp.gen_copy(&s, &d);
+			}
+			else
+			{
+				cmp.gen_remove(&s, &d);
+			}            
+            nb_comp += 1;
+            let end = SystemTime::now();
+            tps += end
+                .duration_since(start)
+                .expect("ERROR computing duration!");
+        }
+        let end_elapse = SystemTime::now();
+        let tps_elapse = end_elapse
+            .duration_since(start_elapse)
+            .expect("ERROR computing duration!");
+        cmp.logger.log(format!("INFO {} {} in {:?}/{:?}", &name, nb_comp, tps, tps_elapse));
     });
     handle
 }

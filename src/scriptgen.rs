@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::io::{Write,BufWriter};
 use std::fs::File; 
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{Sender, Receiver};
 use std::thread::{spawn, JoinHandle};
 use std::time::{SystemTime,Duration};
 
@@ -93,24 +93,31 @@ pub fn gen_rd(dst: &PathBuf, nbfic: &u32, nbfold: &u32)->OsString
     res
 }
 
+fn log(data: String, to_logger: &Sender<String>) 
+{
+    if to_logger.send(data).is_err() {
+        println!("Erreur sending log");
+    }
+}
+
 /**
 * start output thread
 * we open/create the destination file
 * for each command receive from the chanel we write in output
 * 
 */
-pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> JoinHandle<()>
+pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf, to_logger: Sender<String>) -> JoinHandle<()>
 {
    let handle = spawn( move || {
        let start_elapse = SystemTime::now();
        let mut tps = Duration::new(0, 0);
-       println!("INFO start writer");
+       log("INFO start writer".to_string(), &to_logger);
        let mut nb_ecr = 0;
        let writer = 
        match File::create(output)
        {
                Err(e) =>{
-                   println!("Erreur écriture fichier {:?}", e);
+                   log(format!("Erreur écriture fichier {:?}", e).to_string(), &to_logger);
                    return;
                },
                Ok(fichier) =>
@@ -122,8 +129,8 @@ pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> Joi
        match buffer_writer.write_all("@echo off\n".as_bytes()) 
        {
            Err(e) =>{
-               println!("Erreur écriture fichier {:?}", e);
-               return;
+            log(format!("Erreur écriture fichier {:?}", e).to_string(), &to_logger);
+            return;
            },
            Ok(_) =>
            {              
@@ -133,8 +140,8 @@ pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> Joi
        match buffer_writer.write_all("chcp 65001\n".as_bytes()) //utf8 codepage
        {
            Err(e) =>{
-               println!("Erreur écriture fichier {:?}", e);
-               return;
+            log(format!("Erreur écriture fichier {:?}", e).to_string(), &to_logger);
+            return;
            },
            Ok(_) =>
            {              
@@ -146,8 +153,8 @@ pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> Joi
            match buffer_writer.write_all(data.to_command().to_str().unwrap().as_bytes()) 
            {
                Err(e) =>{
-                   println!("Erreur écriture fichier {:?}", e);
-                   return;
+                log(format!("Erreur écriture fichier {:?}", e).to_string(), &to_logger);
+                return;
                },
                Ok(_) =>
                {                      
@@ -157,8 +164,8 @@ pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> Joi
            match buffer_writer.write_all("\n".as_bytes()) 
            {
                Err(e) =>{
-                   println!("Erreur écriture fichier {:?}", e);
-                   return;
+                log(format!("Erreur écriture fichier {:?}", e).to_string(), &to_logger);
+                return;
                },
                Ok(_) =>
                {              
@@ -170,8 +177,7 @@ pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> Joi
        }
        let end_elapse = SystemTime::now();
        let tps_elapse = end_elapse.duration_since(start_elapse).expect("ERROR computing duration!");
-       println!("INFO {} lignes writes in {:?}/{:?}", nb_ecr, tps,tps_elapse);
-
+       log(format!("INFO {} lignes writes in {:?}/{:?}", nb_ecr, tps,tps_elapse).to_string(), &to_logger);
    });
    handle
 }

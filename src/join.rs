@@ -5,6 +5,13 @@ use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
 use std::time::{Duration, SystemTime};
 
+fn log(data: String, to_logger: &Sender<String>) 
+{
+    if to_logger.send(data).is_err() {
+        println!("Erreur sending log");
+    }
+}
+
 /**
  * start a thread that reads a MPSC chanel
  * when a source and a destination data is receive we create a tuple and send it to the 2 MPSC chanels to compare threads
@@ -15,9 +22,10 @@ pub fn start_thread_joiner(
     from_read: Receiver<(Place, Fold)>,
     to_comp_p: Sender<(Arc<Fold>, Arc<Fold>)>,
     to_comp_m: Sender<(Arc<Fold>, Arc<Fold>)>,
+    to_logger: Sender<String>
 ) -> JoinHandle<()> {
     let handle = spawn(move || {
-        println!("INFO start joiner");
+        log("INFO start joiner".to_string(), &to_logger);
         //elapse timings (duration of thread)
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
@@ -49,11 +57,11 @@ pub fn start_thread_joiner(
                 //and send then to the comparison threads
                 //note thart we remove the data from the lists because we don't need to keep them after they are sent
                 if to_comp_m.send((s.clone(), d.clone())).is_err() {
-                    println!("ERROR calling comp_m");
+                    log("ERROR calling comp_m".to_string(), &to_logger);
                     return;
                 }
                 if to_comp_p.send((s, d)).is_err() {
-                    println!("ERROR calling comp_p");
+                    log("ERROR calling comp_m".to_string(), &to_logger);
                     return;
                 }
                 nb_comp += 1;
@@ -66,11 +74,8 @@ pub fn start_thread_joiner(
         let end_elapse = SystemTime::now();
         let tps_elapse = end_elapse
             .duration_since(start_elapse)
-            .expect("ERROR computing duration!");
-        println!(
-            "INFO join ends ({} src/ {} dst/ {} comp in {:?}/{:?}",
-            nb_src, nb_dst, nb_comp, tps, tps_elapse
-        );
+            .expect("ERROR computing duration!");        
+        log(format!("INFO join ends ({} src/ {} dst/ {} comp in {:?}/{:?}",nb_src, nb_dst, nb_comp, tps, tps_elapse).to_string(), &to_logger);
     });
     handle
 }

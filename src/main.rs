@@ -6,6 +6,7 @@ mod join;
 mod paramcli;
 mod readconf;
 mod scriptgen;
+mod logger;
 
 use comparer::*;
 use explorer::*;
@@ -74,9 +75,14 @@ fn main() {
     let (to_comp_p, from_join_p) = channel();
     //comp threads to write output
     let (to_script, from_comp) = channel();
+    //channel to the logger
+    let (to_logger, from_all) = channel();
+
+    //start the logger
+    start_thread_logger(from_all);
 
     //start writer thread
-    let hwriter = start_thread_writer(from_comp, Path::new(&param.fic_out).to_path_buf());
+    let hwriter = start_thread_writer(from_comp, Path::new(&param.fic_out).to_path_buf(), to_logger.clone());
     //get data for readers
     for s in param.source {
         src.push(Path::new(&s).to_path_buf());
@@ -85,13 +91,13 @@ fn main() {
         dst.push(Path::new(&d).to_path_buf());
     }
     // start compare threads
-    let hcompp = start_thread_comp_p(from_join_p, to_script.clone(), &opt);
-    let hcompm = start_thread_comp_m(from_join_m, to_script, &opt);
+    let hcompp = start_thread_comp_p(from_join_p, to_script.clone(), &opt, to_logger.clone());
+    let hcompm = start_thread_comp_m(from_join_m, to_script, &opt, to_logger.clone());
     //start join thread
-    let hjoin = start_thread_joiner(from_read, to_comp_m, to_comp_p);
+    let hjoin = start_thread_joiner(from_read, to_comp_m, to_comp_p, to_logger.clone());
     //start read threads
-    let hreadsrc = start_thread_read_src(to_join.clone(), src, &opt);
-    let hreaddst = start_thread_read_dst(to_join, dst, &opt);
+    let hreadsrc = start_thread_read_src(to_join.clone(), src, &opt, to_logger.clone());
+    let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger);
 
     //wait for threads to stop
     hreadsrc.join().unwrap();
