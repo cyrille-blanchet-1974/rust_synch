@@ -1,5 +1,10 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::io::{Write,BufWriter};
+use std::fs::File; 
+use std::sync::mpsc::Receiver;
+use std::thread::{spawn, JoinHandle};
+use std::time::{SystemTime,Duration};
 
 pub enum Command
 {
@@ -18,7 +23,7 @@ impl Command
             Command::Copy(src, dst) => gen_copy(src, dst),
             Command::CopyRecurs(src, dst) => gen_copy_rec(src, dst),
             Command::RemoveFile(dst) => gen_del(dst),
-            Command::RemoveFold(dst,nbfold, nbfic) => gen_rd(dst, nbfold, nbfic),
+            Command::RemoveFold(dst, nbfold, nbfic) => gen_rd(dst, nbfold, nbfic),
         }
     }
 }
@@ -86,4 +91,87 @@ pub fn gen_rd(dst: &PathBuf, nbfic: &u32, nbfold: &u32)->OsString
     //   /S   recursive
     //   /Q   No confirmation ask to user
     res
+}
+
+/**
+* start output thread
+* we open/create the destination file
+* for each command receive from the chanel we write in output
+* 
+*/
+pub fn start_thread_writer(from_comp: Receiver<Command>, output: PathBuf) -> JoinHandle<()>
+{
+   let handle = spawn( move || {
+       let start_elapse = SystemTime::now();
+       let mut tps = Duration::new(0, 0);
+       println!("INFO start writer");
+       let mut nb_ecr = 0;
+       let writer = 
+       match File::create(output)
+       {
+               Err(e) =>{
+                   println!("Erreur écriture fichier {:?}", e);
+                   return;
+               },
+               Ok(fichier) =>
+               {             
+                   fichier
+               }
+       };
+       let mut buffer_writer = BufWriter::new(writer);
+       match buffer_writer.write_all("@echo off\n".as_bytes()) 
+       {
+           Err(e) =>{
+               println!("Erreur écriture fichier {:?}", e);
+               return;
+           },
+           Ok(_) =>
+           {              
+               nb_ecr +=1;        
+           }
+       } 
+       match buffer_writer.write_all("chcp 65001\n".as_bytes()) //utf8 codepage
+       {
+           Err(e) =>{
+               println!("Erreur écriture fichier {:?}", e);
+               return;
+           },
+           Ok(_) =>
+           {              
+               nb_ecr +=1;        
+           }
+       } 
+       for data in from_comp{
+           let start = SystemTime::now();
+           match buffer_writer.write_all(data.to_command().to_str().unwrap().as_bytes()) 
+           {
+               Err(e) =>{
+                   println!("Erreur écriture fichier {:?}", e);
+                   return;
+               },
+               Ok(_) =>
+               {                      
+                   nb_ecr +=1;
+               }
+           } 
+           match buffer_writer.write_all("\n".as_bytes()) 
+           {
+               Err(e) =>{
+                   println!("Erreur écriture fichier {:?}", e);
+                   return;
+               },
+               Ok(_) =>
+               {              
+                   nb_ecr +=1;        
+               }
+           } 
+           let end = SystemTime::now();
+           tps += end.duration_since(start).expect("ERROR computing duration!");
+       }
+       let end_elapse = SystemTime::now();
+       let tps_elapse = end_elapse.duration_since(start_elapse).expect("ERROR computing duration!");
+       println!("INFO {} lignes writes in {:?}/{:?}", nb_ecr, tps,tps_elapse);
+
+   });
+   handle
 }

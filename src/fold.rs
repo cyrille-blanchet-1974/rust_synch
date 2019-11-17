@@ -6,28 +6,28 @@ use std::collections::HashMap;
 
 pub struct Fold
 {
-    pub name : OsString,                //folder's name (only it : not the full path!!)
-    pub fics : HashMap<OsString,Fic>,   //files inside the folder
-    pub folds : HashMap<OsString,Fold>, //sub-filders
-    pub forbidden : bool,               //Forbidden folder
+    pub name: OsString,                //folder's name (only it: not the full path!!)
+    pub fics: HashMap<OsString, Fic>,   //files inside the folder
+    pub folds: HashMap<OsString, Fold>, //sub-filders
+    pub forbidden: bool,               //Forbidden folder
     pub folder_count: u32,              //number of subfolder (recursively)
     pub file_count: u32,                //number of files (recursively)
 }
 
 impl Fold{
-    pub fn new_root(dir : &Path)->Fold
+    pub fn new_root(dir: &Path)->Fold
     {
         Fold{
-            name : (*dir).as_os_str().to_os_string(), 
-            fics : HashMap::new(),
-            folds : HashMap::new(),
-            forbidden : false,
+            name: (*dir).as_os_str().to_os_string(), 
+            fics: HashMap::new(),
+            folds: HashMap::new(),
+            forbidden: false,
             folder_count: 0,
             file_count: 0
             }
     }
 
-    pub fn new(dir : &Path)->Fold
+    pub fn new(dir: &Path)->Fold
     {
         let n = 
         match (*dir).file_name()
@@ -36,16 +36,16 @@ impl Fold{
             None => (*dir).as_os_str().to_os_string(),  //pour / ou c:\ ...   on garde tout
         };
         Fold{
-            name : n, 
-            fics : HashMap::new(),
-            folds : HashMap::new(),
-            forbidden : false,
+            name: n, 
+            fics: HashMap::new(),
+            folds: HashMap::new(),
+            forbidden: false,
             folder_count: 0,
             file_count: 0
             }
     }
 
-    pub fn add_fold(&mut self, fold : Fold)
+    pub fn add_fold(&mut self, fold: Fold)
     {
         let n = Path::new(&fold.name);
         let name = (n.file_name().unwrap()).to_os_string();
@@ -56,7 +56,7 @@ impl Fold{
         self.folds.insert(to_lower(&name), fold);
     }
 
-    pub fn add_fic(&mut self, fic : Fic)
+    pub fn add_fic(&mut self, fic: Fic)
     {
         let n = Path::new(&fic.name);
         let name = (n.file_name().unwrap()).to_os_string();
@@ -64,39 +64,15 @@ impl Fold{
         self.fics.insert(to_lower(&name), fic);
     }
 
-    pub fn get_counts(&self)->(u32,u32)
+    pub fn get_counts(&self)->(u32, u32)
     {
-        (self.folder_count,self.file_count)
+        (self.folder_count, self.file_count)
     }
-
-//non utilisé...
-/*
-    pub fn display(&self)
-    {
-        let nouvelle_racine = Path::new(&self.name);
-        self.display_recurse(&nouvelle_racine);
-    }    
-
-    fn display_recurse(&self,racine:&Path)
-    {
-        let nouvelle_racine = Path::new(racine).join(&self.name);
-        println!("{:?}",&nouvelle_racine);
-        for (_key, val) in self.fics.iter()
-        {
-            let nouveau_fic = Path::new(&nouvelle_racine).join(&val.name);
-            println!("{:?}",nouveau_fic);
-        }
-        for (_key, val) in self.folds.iter()
-        {
-            val.display_recurse(&nouvelle_racine);
-        }
-    }    
-*/
 }
 
-pub fn to_lower(name : &OsString)->OsString
+pub fn to_lower(name: &OsString)->OsString
 {
-    let res : OsString;
+    let res: OsString;
     let clone = OsString::from(name);
     match clone.into_string()
     {
@@ -108,6 +84,5 @@ pub fn to_lower(name : &OsString)->OsString
             res=a;
         }
     }
-    //println!("{:?}=>{:?}",&name,&res);
     return res;
 }

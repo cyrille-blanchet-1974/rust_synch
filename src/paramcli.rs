@@ -3,37 +3,35 @@ pub use super::readconf::*;
 use std::env;
 
 #[derive(Debug)]
-pub struct Options
+pub struct Options //options from command line (subset of Paramcli)
 {
-    pub verbose : bool,
-    pub crypt : bool,
-    pub ignore_err : bool,
+    pub verbose: bool,
+    pub crypt: bool,
+    pub ignore_err: bool,
 }
 
-
-
 #[derive(Debug)]
-pub struct Paramcli
+pub struct Paramcli //parameters from command line and/or confFile
 {
     pub source: Vec<String>,
     pub destination: Vec<String>,
-    pub fic_out : String,
-    pub verbose : bool,
-    pub crypt : bool,
-    pub ignore_err : bool,
+    pub fic_out: String,
+    pub verbose: bool,
+    pub crypt: bool,
+    pub ignore_err: bool,
     pub config: String,
 }
 
 impl Paramcli{
     pub fn new()->Paramcli
     {
-        let mut fic= String::new();
+        let mut fic = String::new();
         let mut ver = false;
         let mut cry = false;
         let mut ign = false;
         let mut src = Vec::new();
         let mut dst = Vec::new();
-        let mut conf= String::new();
+        let mut conf = String::new();
 
         let args: Vec<String> = env::args().skip(1).collect();
         if args.len() == 0
@@ -41,7 +39,7 @@ impl Paramcli{
             help();
         }
         for arg in args {
-            println!("{}",arg);
+            println!("{}", arg);
             if arg == "/?" ||  arg == "-?" || arg.to_lowercase() == "/help" || arg.to_lowercase() == "-help"
             {
                 help();
@@ -118,11 +116,11 @@ impl Paramcli{
         Paramcli{
             source: src,
             destination: dst,
-            fic_out : fic,
-            verbose : ver,
-            crypt : cry,
-            ignore_err : ign,
-            config : conf
+            fic_out: fic,
+            verbose: ver,
+            crypt: cry,
+            ignore_err: ign,
+            config: conf
         }
     }
     /**
@@ -132,14 +130,14 @@ impl Paramcli{
     pub fn to_options(&self)->Options
     {
         Options{
-            verbose : self.verbose,
-            crypt : self.crypt,
-            ignore_err : self.ignore_err,
+            verbose: self.verbose,
+            crypt: self.crypt,
+            ignore_err: self.ignore_err,
         }
     }
 }
 
-fn get_param(arg : String) -> String
+fn get_param(arg: String) -> String
 {
     let mut res = String::new();
     for part in arg.split(":").skip(1)

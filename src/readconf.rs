@@ -5,12 +5,12 @@ use std::io::BufRead;
 #[derive(Debug)]
 pub struct Readconf
 {
-    pub source : Vec<String>,
+    pub source: Vec<String>,
     pub destination: Vec<String>,
 }
 
 impl Readconf{
-    pub fn new(ficconf:&String)->Readconf
+    pub fn new(ficconf: &String)->Readconf
     {
         let mut src= Vec::new();
         let mut dst= Vec::new();
@@ -19,7 +19,7 @@ impl Readconf{
         match input
         {
             Err(e) =>{
-                println!("Error reading conf file {} => {}",&ficconf,e);
+                println!("Error reading conf file {} => {}", &ficconf, e);
             },
             Ok(f) =>{
                 let buffered = BufReader::new(f);
@@ -54,7 +54,7 @@ impl Readconf{
     }
 }
 
-fn get_val(arg : &String) -> String
+fn get_val(arg: &String) -> String
 {
     let mut res = String::new();
     for part in arg.split("=").skip(1)
