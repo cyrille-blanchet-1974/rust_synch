@@ -1,14 +1,14 @@
-mod readconf;
-mod paramcli;
+mod comparer;
+mod explorer;
 mod fic;
 mod fold;
-mod explorer;
-mod comparer;
-mod scriptgen;
 mod join;
+mod paramcli;
+mod readconf;
+mod scriptgen;
 
-use explorer::*;
 use comparer::*;
+use explorer::*;
 use join::*;
 
 use std::path::Path;
@@ -18,7 +18,7 @@ use std::sync::mpsc::channel;
  * Note: in the following MPSC chanel means
  * multi-producer single-consumer chanel
  * multiple threads write to the chanel and a unique thread read it
- * 
+ *
  * here we use 6 threads (plus the main one) and 4 chanels
  * 2 threads that reads sources and destination and write to the first chanel
  * 1 thread ta read the fist chanel and join sources/destinations to send then
@@ -33,8 +33,8 @@ use std::sync::mpsc::channel;
  *      read_src         read_dst
  *              \         /
  *               \       /           
- *                \     / 
- *                 \   / 
+ *                \     /
+ *                 \   /
  *                  \ /
  *                 join
  *                  /\
@@ -44,11 +44,11 @@ use std::sync::mpsc::channel;
  *      find_new        find_to_remove
  *              \         /
  *               \       /           
- *                \     / 
- *                 \   / 
+ *                \     /
+ *                 \   /
  *                  \ /
  *               write output
- * 
+ *
  */
 
 /**
@@ -57,9 +57,8 @@ use std::sync::mpsc::channel;
 fn main() {
     println!("synch 1.0 (2019)");
     let param = Paramcli::new();
-    if param.verbose
-    {
-        println!("params: {:?}", param );
+    if param.verbose {
+        println!("params: {:?}", param);
     }
     //options for explorer and comparer
     let opt = param.to_options();
@@ -67,32 +66,32 @@ fn main() {
     let mut src = Vec::new();
     let mut dst = Vec::new();
     //MPSC chanels
-      //read threads to join thread
+    //read threads to join thread
     let (to_join, from_read) = channel();
-      //join thread to comp plus thread
+    //join thread to comp plus thread
     let (to_comp_m, from_join_m) = channel();
-      //join thread to comp minus thread    
+    //join thread to comp minus thread
     let (to_comp_p, from_join_p) = channel();
-      //comp threads to write output
+    //comp threads to write output
     let (to_script, from_comp) = channel();
 
     //start writer thread
     let hwriter = start_thread_writer(from_comp, Path::new(&param.fic_out).to_path_buf());
     //get data for readers
     for s in param.source {
-        src.push(Path::new(&s).to_path_buf());    
+        src.push(Path::new(&s).to_path_buf());
     }
     for d in param.destination {
-        dst.push(Path::new(&d).to_path_buf());    
+        dst.push(Path::new(&d).to_path_buf());
     }
     // start compare threads
-    let hcompp = start_thread_comp_p(from_join_p, to_script.clone(),&opt);
-    let hcompm = start_thread_comp_m(from_join_m, to_script,&opt);
+    let hcompp = start_thread_comp_p(from_join_p, to_script.clone(), &opt);
+    let hcompm = start_thread_comp_m(from_join_m, to_script, &opt);
     //start join thread
     let hjoin = start_thread_joiner(from_read, to_comp_m, to_comp_p);
     //start read threads
     let hreadsrc = start_thread_read_src(to_join.clone(), src, &opt);
-    let hreaddst = start_thread_read_dst(to_join, dst, &opt); 
+    let hreaddst = start_thread_read_dst(to_join, dst, &opt);
 
     //wait for threads to stop
     hreadsrc.join().unwrap();
@@ -101,5 +100,4 @@ fn main() {
     hcompp.join().unwrap();
     hcompm.join().unwrap();
     hwriter.join().unwrap();
-
 }
