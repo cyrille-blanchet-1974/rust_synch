@@ -1,6 +1,6 @@
 pub use super::fold::*;
-pub use super::paramcli::*;
 pub use super::logger::*;
+pub use super::paramcli::*;
 
 use std::fs;
 use std::path::Path;
@@ -18,8 +18,8 @@ pub struct Explorer {
 }
 
 impl Explorer {
-    pub fn new(o: &Options,to_logger: Sender<String>) -> Explorer {
-        let log = Logger::new(o.verbose,to_logger);
+    pub fn new(o: &Options, to_logger: Sender<String>) -> Explorer {
+        let log = Logger::new(o.verbose, to_logger);
         Explorer {
             ignore_err: o.ignore_err,
             folder_forbidden_count: 0,
@@ -29,14 +29,21 @@ impl Explorer {
     }
 
     pub fn run(&mut self, dir: &Path) -> Fold {
-        self.logger.log_verbose(format!("TRACE Reading Folder: {:?} ", &dir));
+        self.logger
+            .log_verbose(format!("TRACE Reading Folder: {:?} ", &dir));
         self.folder_forbidden_count = 0;
         self.file_forbidden_count = 0;
         let start = SystemTime::now();
         let mut d = Fold::new_root(dir);
         self.run_int(dir, &mut d);
         let c = d.get_counts();
-        self.logger.log_timed_verbose(format!("TRACE Folder: {:?} Folder total/forbidden {}/{} Files total/forbidden {}/{}",dir,c.0,self.folder_forbidden_count,c.1,self.file_forbidden_count),start);
+        self.logger.log_timed_verbose(
+            format!(
+                "TRACE Folder: {:?} Folder total/forbidden {}/{} Files total/forbidden {}/{}",
+                dir, c.0, self.folder_forbidden_count, c.1, self.file_forbidden_count
+            ),
+            start,
+        );
         d
     }
 
@@ -107,18 +114,23 @@ fn start_thread_read(
     to_join: Sender<(Place, Fold)>,
     data: Vec<PathBuf>,
     opt: &Options,
-    to_logger: Sender<String>
+    to_logger: Sender<String>,
 ) -> JoinHandle<()> {
     let mut explorer = Explorer::new(opt, to_logger);
-    let name = format!("{}_reader",what.to_string());
-    explorer.logger.log(format!("INFO start {}",&name));
+    let name = format!("{}_reader", what.to_string());
+    explorer.logger.log(format!("INFO start {}", &name));
     let handle = spawn(move || {
         //timings: elapse count all and the other counts only acting time
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
         //number of item receive from chanel
         let mut nb = 0;
-        explorer.logger.log(format!("INFO {} start reading {} folders in {}s",&name,&data.len(),what.to_string()));        
+        explorer.logger.log(format!(
+            "INFO {} start reading {} folders in {}s",
+            &name,
+            &data.len(),
+            what.to_string()
+        ));
         //iterate on sources
         for d in data {
             //read time only
@@ -139,7 +151,10 @@ fn start_thread_read(
         let tps_elapse = end_elapse
             .duration_since(start_elapse)
             .expect("ERROR computing duration!");
-        explorer.logger.log(format!("INFO {} {} folders read in {:?}/{:?}",&name,nb,tps,tps_elapse));
+        explorer.logger.log(format!(
+            "INFO {} {} folders read in {:?}/{:?}",
+            &name, nb, tps, tps_elapse
+        ));
     });
     handle
 }
@@ -154,7 +169,7 @@ pub fn start_thread_read_src(
     to_join: Sender<(Place, Fold)>,
     data: Vec<PathBuf>,
     opt: &Options,
-    to_logger: Sender<String>
+    to_logger: Sender<String>,
 ) -> JoinHandle<()> {
     start_thread_read(Place::Src, to_join, data, opt, to_logger)
 }
@@ -169,7 +184,7 @@ pub fn start_thread_read_dst(
     to_join: Sender<(Place, Fold)>,
     data: Vec<PathBuf>,
     opt: &Options,
-    to_logger: Sender<String>
+    to_logger: Sender<String>,
 ) -> JoinHandle<()> {
     start_thread_read(Place::Dst, to_join, data, opt, to_logger)
 }

@@ -3,10 +3,10 @@ mod explorer;
 mod fic;
 mod fold;
 mod join;
+mod logger;
 mod paramcli;
 mod readconf;
 mod scriptgen;
-mod logger;
 
 use comparer::*;
 use explorer::*;
@@ -82,7 +82,11 @@ fn main() {
     start_thread_logger(from_all);
 
     //start writer thread
-    let hwriter = start_thread_writer(from_comp, Path::new(&param.fic_out).to_path_buf(), to_logger.clone());
+    let hwriter = start_thread_writer(
+        from_comp,
+        Path::new(&param.fic_out).to_path_buf(),
+        to_logger.clone(),
+    );
     //get data for readers
     for s in param.source {
         src.push(Path::new(&s).to_path_buf());
