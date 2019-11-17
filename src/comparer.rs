@@ -1,9 +1,9 @@
 pub use super::fold::*;
 pub use super::paramcli::*;
+pub use super::scriptgen::*;
 
 use std::path::Path;
 use std::time::SystemTime;
-use std::ffi::OsString;
 use std::sync::mpsc::Sender;
 
 extern crate chrono;
@@ -16,11 +16,11 @@ pub struct Comparer
     verbose : bool,
     crypt : bool,
     ignore_err : bool,
-    sender : Sender<OsString> //MPSC chanel to send command to be written to output script
+    sender : Sender<Command> //MPSC chanel to send command to be written to output script
 }
 
 impl Comparer{
-    pub fn new(o : &Options, s : Sender<OsString>)->Comparer
+    pub fn new(o : &Options, s : Sender<Command>)->Comparer
     {
         Comparer
         {
@@ -95,8 +95,7 @@ impl Comparer{
                     //n'existe pas en destination -> générer une copie récursive
                     let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                     let chemin_dst = Path::new(&racine_dst);
-                    let cmd = gen_copy_rec(&chemin_src,&chemin_dst);
-                    self.deal_with_cmd(cmd);
+                    self.deal_with_cmd(Command::CopyRecurs(chemin_src,chemin_dst.to_path_buf()));
                 },
                 Some(val_dst) => {
                     if val_dst.forbidden 
@@ -129,8 +128,7 @@ impl Comparer{
                     //n'existe pas en destination -> générer une copie
                     let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                     let chemin_dst = Path::new(&racine_dst);
-                    let cmd = gen_copy(&chemin_src,&chemin_dst);
-                    self.deal_with_cmd(cmd);
+                    self.deal_with_cmd(Command::Copy(chemin_src,chemin_dst.to_path_buf()));
                 },
                 Some(val_dst) => {
                     //existe en source et destination  -> les comparer
@@ -160,8 +158,7 @@ impl Comparer{
                     {
                         let chemin_src = Path::new(&racine_src).join(&(val_src.name));
                         let chemin_dst = Path::new(&racine_dst);
-                        let cmd = gen_copy(&chemin_src,&chemin_dst);
-                        self.deal_with_cmd(cmd);
+                        self.deal_with_cmd(Command::Copy(chemin_src,chemin_dst.to_path_buf()));
                     }
                 }
             }
@@ -192,13 +189,9 @@ impl Comparer{
                 None => {
                     //n'existe pas en destination -> générer un remove directory
                     let chemin = Path::new(&racine_dst).join(&(val_dst.name));
-                    let mut cmd = gen_rd(&chemin);
+                   // let mut cmd = gen_rd(&chemin);
                     let d = val_dst.get_counts();
-                    if d.0 > 10 || d.1 > 100
-                    {
-                        cmd = get_confirmation(&chemin,d,&cmd);
-                    }
-                    self.deal_with_cmd(cmd);
+                    self.deal_with_cmd(Command::RemoveFold(chemin,d.0,d.1));
                 },
                 Some(val_src) => {
                     if val_src.forbidden 
@@ -230,8 +223,8 @@ impl Comparer{
                 None => {
                     //n'existe pas en destination -> générer un delete
                     let chemin = Path::new(&racine_dst).join(&(val_dst.name));
-                    let cmd = gen_del(&chemin);
-                    self.deal_with_cmd(cmd);
+                    //let cmd = gen_del(&chemin);
+                    self.deal_with_cmd(Command::RemoveFile(chemin));
                 },
                 Some(_) => {
                     //existe en source et destination  -> s'ils sont différent c'est le gen_copy qui a généré la copie
@@ -242,87 +235,11 @@ impl Comparer{
     }
 
 
-    fn deal_with_cmd(&self, cmd : OsString)
+    fn deal_with_cmd(&self, cmd : Command)
     {
         if self.sender.send(cmd).is_err()
         {
             println!("Erreur sending command");
         }
     }
-}
-
-pub fn gen_copy(src: &Path, dst: &Path)->OsString
-{
-    let mut res = OsString::new();
-    res.push(r###"XCOPY ""###);
-    res.push(src);
-    res.push(r###"" ""###);
-    res.push(dst);
-    res.push(r###"" /H /Y /K /R "###);
-    // /H   also copy hidden files
-    // /Y   No confirmation ask to user
-    // /K   copy attributes
-    // /R   replace Read only files
-    res
-}
-
-pub fn gen_copy_rec(src: &Path, dst: &Path)->OsString
-{
-    let mut res = OsString::new();
-    res.push(r###"XCOPY ""###);
-    res.push(src);
-    res.push("\\*.*");
-    res.push(r###"" ""###);    
-    res.push(dst);
-    res.push(r###"" /E /I /H /Y /K /R "###);
-    // /E   copy empty sub folders
-    // /I   choose folder as destination if many files in source
-    // /H   also copy hidden files
-    // /Y   No confirmation ask to user
-    // /K   copy attributes
-    // /R   replace Read only files
-    res
-}
-
-pub fn gen_del(dst: &Path)->OsString
-{
-    let mut res = OsString::new();
-    res.push(r###"DEL ""###);
-    res.push(dst);
-    res.push(r###"" /F /A "###);
-    //   /F   Force delete of read only
-    //   /A   delete whatever attributes 
-    res
-}
-
-pub fn gen_rd(dst: &Path)->OsString
-{
-    let mut res = OsString::new();
-    res.push(r###"RD /S /Q ""###);
-    res.push(dst);
-    res.push(r###"""###);
-    //   /S   recursive
-    //   /Q   No confirmation ask to user
-    res
-}
-
-pub fn get_confirmation(dst: &Path, c:(u32,u32), cmd : &OsString)->OsString
-{
-    let mut res = OsString::new();
-    let s = format!("Echo {:?} Contains {} folders and {}  files.\n",dst,c.0,c.1);
-    res.push(s);
-    /*res.push("Echo ");
-    res.push(dst);
-    res.push("Contains ");
-    res.push(c.0);
-    res.push(" folders and ");
-    res.push(c.1);
-    res.push(" files.\n");*/
-    res.push("Echo Please confirm deletation\n");
-    res.push("Echo Y to Delete\n");
-    res.push("Echo N to keep\n");
-    res.push("choice /C YN\n");
-    res.push("if '%ERRORLEVE%'=='1' ");
-    res.push(cmd);
-    res
 }

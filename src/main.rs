@@ -4,14 +4,15 @@ mod fic;
 mod fold;
 mod explorer;
 mod comparer;
+mod scriptgen;
 
 use explorer::*;
 use comparer::*;
+use scriptgen::*;
 
 use std::io::{Write,BufWriter};
 use std::collections::VecDeque;
 use std::path::{Path,PathBuf};
-use std::ffi::OsString;
 use std::fs::File; 
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender, Receiver};
@@ -203,7 +204,7 @@ fn start_joiner(receiver : Receiver<(Place,Fold)>,sender_comp_p : Sender<(Arc<Fo
  * commands are sent into a output chanel
  * these chanel goes to a thread who is in charge of writing them to outputfile
  */
-fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsString>, opt : &Options) -> JoinHandle<()>
+fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<Command>, opt : &Options) -> JoinHandle<()>
 {
     let cmp = Comparer::new(opt,sender);
     let handle = spawn( move || {
@@ -230,7 +231,7 @@ fn start_comp_p(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsStr
  * quite the same as previous thread
  * but generate remove commands for data in destination only
  */
-fn start_comp_m(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsString>, opt : &Options) -> JoinHandle<()>
+fn start_comp_m(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<Command>, opt : &Options) -> JoinHandle<()>
 {
     let cmp = Comparer::new(opt,sender);
     let handle = spawn( move || {
@@ -259,7 +260,7 @@ fn start_comp_m(receiver : Receiver<(Arc<Fold>,Arc<Fold>)>,sender : Sender<OsStr
  * for each command receive from the chanel we write in output
  * 
  */
-fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()>
+fn start_writer(receiver : Receiver<scriptgen::Command>,output : PathBuf) -> JoinHandle<()>
 {
     let handle = spawn( move || {
         let start_elapse = SystemTime::now();
@@ -303,7 +304,7 @@ fn start_writer(receiver : Receiver<OsString>,output : PathBuf) -> JoinHandle<()
         } 
         for data in receiver{
             let start = SystemTime::now();
-            match buffer_writer.write_all(data.to_str().unwrap().as_bytes()) 
+            match buffer_writer.write_all(data.to_command().to_str().unwrap().as_bytes()) 
             {
                 Err(e) =>{
                     println!("Erreur écriture fichier {:?}",e);
