@@ -6,12 +6,6 @@ use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
 use std::time::{Duration, SystemTime};
 
-fn log(data: String, to_logger: &Sender<String>) {
-    if to_logger.send(data).is_err() {
-        println!("Erreur sending log");
-    }
-}
-
 /**
  * start a thread that reads a MPSC chanel
  * when a source and a destination data is receive we create a tuple and send it to the 2 MPSC chanels to compare threads
@@ -23,9 +17,11 @@ pub fn start_thread_joiner(
     to_comp_p: Sender<(Arc<Fold>, Arc<Fold>)>,
     to_comp_m: Sender<(Arc<Fold>, Arc<Fold>)>,
     to_logger: Sender<String>,
+    verbose: bool,
 ) -> JoinHandle<()> {
     let handle = spawn(move || {
-        log("INFO start joiner".to_string(), &to_logger);
+        let logger = Logger::new("join".to_string(),verbose, to_logger);
+        logger.starting();
         //elapse timings (duration of thread)
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
@@ -37,6 +33,7 @@ pub fn start_thread_joiner(
         let mut nb_comp = 0;
         //iterate on chanel
         for (typ, data) in from_read {
+            logger.verbose(format!("receive {} data", typ.to_string()));
             //real timing
             let start = SystemTime::now();
             //save the data receive in a list regarding of his type
@@ -51,37 +48,31 @@ pub fn start_thread_joiner(
                 }
             }
             if !src.is_empty() && !dst.is_empty() {
+                logger.verbose("got a pair -> sending to comparers".to_string());
                 //when we have at least a source and a destination we have our tuple
                 let s = Arc::new(src.pop_front().unwrap());
                 let d = Arc::new(dst.pop_front().unwrap());
                 //and send then to the comparison threads
                 //note thart we remove the data from the lists because we don't need to keep them after they are sent
                 if to_comp_m.send((s.clone(), d.clone())).is_err() {
-                    log("ERROR calling comp_m".to_string(), &to_logger);
+                    logger.error("calling comp_m".to_string());
                     return;
                 }
                 if to_comp_p.send((s, d)).is_err() {
-                    log("ERROR calling comp_m".to_string(), &to_logger);
+                    logger.error("calling comp_p".to_string());
                     return;
                 }
                 nb_comp += 1;
             }
-            let end = SystemTime::now();
-            tps += end
-                .duration_since(start)
-                .expect("ERROR computing duration!");
+            tps += logger.timed("finished one operation".to_string(), start);
         }
-        let end_elapse = SystemTime::now();
-        let tps_elapse = end_elapse
-            .duration_since(start_elapse)
-            .expect("ERROR computing duration!");
-        log(
+        logger.dual_timed(
             format!(
-                "INFO join ends ({} src/ {} dst/ {} comp in {:?}/{:?}",
-                nb_src, nb_dst, nb_comp, tps, tps_elapse
-            )
-            .to_string(),
-            &to_logger,
+                "finished all (src:{} dst:{} cmp:{})",
+                nb_src, nb_dst, nb_comp
+            ),
+            tps,
+            start_elapse,
         );
     });
     handle

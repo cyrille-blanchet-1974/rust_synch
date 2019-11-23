@@ -2,13 +2,14 @@ use std::ffi::OsString;
 use std::path::Path;
 use std::time::SystemTime;
 
+//File properties
 pub struct Fic {
     pub modify: SystemTime,
     pub len: u64,
     pub name: OsString,
 }
 
-//File comparison
+//File comparison results
 #[derive(Copy, Clone)]
 pub enum FicComp {
     Same,
@@ -17,6 +18,7 @@ pub enum FicComp {
 }
 
 impl Fic {
+    //create a new 'file' in memory
     pub fn new(p: &Path) -> Option<Fic> {
         let m: SystemTime;
         let l: u64;

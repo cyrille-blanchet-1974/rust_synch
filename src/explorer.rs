@@ -18,8 +18,8 @@ pub struct Explorer {
 }
 
 impl Explorer {
-    pub fn new(o: &Options, to_logger: Sender<String>) -> Explorer {
-        let log = Logger::new(o.verbose, to_logger);
+    pub fn new(n : String, o: &Options, to_logger: Sender<String>) -> Explorer {
+        let log = Logger::new(n, o.verbose, to_logger);
         Explorer {
             ignore_err: o.ignore_err,
             folder_forbidden_count: 0,
@@ -29,17 +29,16 @@ impl Explorer {
     }
 
     pub fn run(&mut self, dir: &Path) -> Fold {
-        self.logger
-            .log_verbose(format!("TRACE Reading Folder: {:?} ", &dir));
+        self.logger.verbose(format!("Reading Folder: {:?} ", &dir));
         self.folder_forbidden_count = 0;
         self.file_forbidden_count = 0;
         let start = SystemTime::now();
         let mut d = Fold::new_root(dir);
         self.run_int(dir, &mut d);
         let c = d.get_counts();
-        self.logger.log_timed_verbose(
+        self.logger.timed(
             format!(
-                "TRACE Folder: {:?} Folder total/forbidden {}/{} Files total/forbidden {}/{}",
+                "Folder: {:?} Folder total/forbidden {}/{} Files total/forbidden {}/{}",
                 dir, c.0, self.folder_forbidden_count, c.1, self.file_forbidden_count
             ),
             start,
@@ -53,7 +52,7 @@ impl Explorer {
             let dir_content = fs::read_dir(dir);
             match dir_content {
                 Err(e) => {
-                    self.logger.log(format!("ERROR {} on {:?}", e, dir)); //appears on folder of which i have no access right
+                    self.logger.error(format!("{} on {:?}", e, dir)); //appears on folder of which i have no access right
                     self.folder_forbidden_count += 1;
                     fold.forbidden = true;
                 }
@@ -61,7 +60,7 @@ impl Explorer {
                     for entry in content {
                         match entry {
                             Err(e) => {
-                                self.logger.log(format!("ERROR {}", e));
+                                self.logger.error(format!("{}", e));
                                 if !self.ignore_err {
                                     std::process::exit(0);
                                 }
@@ -116,45 +115,42 @@ fn start_thread_read(
     opt: &Options,
     to_logger: Sender<String>,
 ) -> JoinHandle<()> {
-    let mut explorer = Explorer::new(opt, to_logger);
     let name = format!("{}_reader", what.to_string());
-    explorer.logger.log(format!("INFO start {}", &name));
+    let mut explorer = Explorer::new(name.to_string(), opt, to_logger);
     let handle = spawn(move || {
-        //timings: elapse count all and the other counts only acting time
+        explorer.logger.starting();
+        //timings: elapse count all and the other counts only acting time        
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
         //number of item receive from chanel
         let mut nb = 0;
-        explorer.logger.log(format!(
-            "INFO {} start reading {} folders in {}s",
-            &name,
-            &data.len(),
-            what.to_string()
-        ));
+        explorer
+            .logger
+            .log(format!("{} folders to read",  &data.len()));
         //iterate on sources
         for d in data {
+            explorer
+                .logger
+                .verbose(format!("start reading {} ",&d.to_str().unwrap()));
             //read time only
             let start = SystemTime::now();
             let src = explorer.run(&Path::new(d.to_str().unwrap()));
-            let end = SystemTime::now();
-            tps += end
-                .duration_since(start)
-                .expect("ERROR computing duration!");
+            tps += explorer.logger.timed(
+                format!("finished reading {} ",&d.to_str().unwrap()),
+                start,
+            );
             //send data to join thread thru MPSC chanel
             if to_join.send((what.clone(), src)).is_err() {
-                println!("ERROR in start_read_{}", what.to_string());
+                explorer.logger.error("seding data to join".to_string());
                 return;
             }
             nb += 1;
         }
-        let end_elapse = SystemTime::now();
-        let tps_elapse = end_elapse
-            .duration_since(start_elapse)
-            .expect("ERROR computing duration!");
-        explorer.logger.log(format!(
-            "INFO {} {} folders read in {:?}/{:?}",
-            &name, nb, tps, tps_elapse
-        ));
+        explorer.logger.dual_timed(
+            format!("finished all reading {} items", nb),
+            tps,
+            start_elapse,
+        );
     });
     handle
 }

@@ -23,7 +23,7 @@ impl WriterDisk{
             writer = match File::create(output)//append ?
             {
                     Err(e) =>{
-                        println!("Erreur création fichier {:?}", e);
+                        println!("Error creating file {:?}", e);
                         return None;
                     },
                     Ok(fichier) =>
@@ -38,7 +38,7 @@ impl WriterDisk{
             writer = match OpenOptions::new().append(true).open(output)
             {
                     Err(e) =>{
-                        println!("Erreur ouverture fichier {:?}", e);
+                        println!("Error opening file {:?} for writing", e);
                         return None;
                     },
                     Ok(fichier) =>
@@ -57,26 +57,16 @@ impl WriterDisk{
 impl Writing for WriterDisk {
     //how to write a log to disk
     fn write(&mut self, data: String) {
-        match self.writer.write_all(data.as_bytes()) 
+        let data2 = format!("{}\n",data);
+        match self.writer.write_all(data2.as_bytes()) 
         {
             Err(e) =>{
-                println!("Erreur écriture fichier {:?}", e);
+                println!("Error writing in file {:?}", e);
              return;
             },
             Ok(_) =>
             {                      
                 self.nb_ecr +=1;
-            }
-        } 
-        match self.writer.write_all("\n".as_bytes()) 
-        {
-            Err(e) =>{
-                println!("Erreur écriture fichier {:?}", e);
-             return;
-            },
-            Ok(_) =>
-            {              
-                self.nb_ecr +=1;        
             }
         } 
     }

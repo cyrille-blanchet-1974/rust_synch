@@ -1,3 +1,4 @@
+use super::logger::*;
 use super::writer::*;
 
 use std::boxed::Box;
@@ -88,12 +89,6 @@ pub fn gen_rd(dst: &PathBuf, nbfic: &u32, nbfold: &u32) -> OsString {
     res
 }
 
-fn log(data: String, to_logger: &Sender<String>) {
-    if to_logger.send(data).is_err() {
-        println!("Erreur sending log");
-    }
-}
-
 /**
 * start output thread
 * we open/create the destination file
@@ -104,8 +99,11 @@ pub fn start_thread_writer(
     from_comp: Receiver<Command>,
     output: PathBuf,
     to_logger: Sender<String>,
+    verbose: bool,
 ) -> JoinHandle<()> {
     let handle = spawn(move || {
+        let logger = Logger::new("writer".to_string(),verbose, to_logger);
+        logger.starting();
         let mut writer: Box<dyn Writing>;
         match WriterDisk::new(output, true) {
             Some(w) => {
@@ -118,7 +116,6 @@ pub fn start_thread_writer(
         };
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
-        log("INFO start writer".to_string(), &to_logger);
         writer.as_mut().write("@echo off".to_string());
         writer.as_mut().write("chcp 65001".to_string()); //utf8 codepage
         for data in from_comp {
@@ -130,19 +127,13 @@ pub fn start_thread_writer(
             tps += end
                 .duration_since(start)
                 .expect("ERROR computing duration!");
+            //no log here (too much too write a log for each command written to script)
         }
-        let end_elapse = SystemTime::now();
-        let tps_elapse = end_elapse
-            .duration_since(start_elapse)
-            .expect("ERROR computing duration!");
         let nb_ecr = writer.as_mut().get_nb_ecr();
-        log(
-            format!(
-                "INFO {} lignes writes in {:?}/{:?}",
-                nb_ecr, tps, tps_elapse
-            )
-            .to_string(),
-            &to_logger,
+        logger.dual_timed(
+            format!("Finished: {} lines writens", nb_ecr),
+            tps,
+            start_elapse,
         );
     });
     handle

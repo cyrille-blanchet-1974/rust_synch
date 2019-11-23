@@ -88,6 +88,7 @@ fn main() {
         from_comp,
         Path::new(&param.fic_out).to_path_buf(),
         to_logger.clone(),
+        opt.verbose,
     );
     //get data for readers
     for s in param.source {
@@ -100,7 +101,13 @@ fn main() {
     let hcompp = start_thread_comp_p(from_join_p, to_script.clone(), &opt, to_logger.clone());
     let hcompm = start_thread_comp_m(from_join_m, to_script, &opt, to_logger.clone());
     //start join thread
-    let hjoin = start_thread_joiner(from_read, to_comp_m, to_comp_p, to_logger.clone());
+    let hjoin = start_thread_joiner(
+        from_read,
+        to_comp_m,
+        to_comp_p,
+        to_logger.clone(),
+        opt.verbose,
+    );
     //start read threads
     let hreadsrc = start_thread_read_src(to_join.clone(), src, &opt, to_logger.clone());
     let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger);

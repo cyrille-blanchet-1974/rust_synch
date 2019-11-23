@@ -24,8 +24,8 @@ pub struct Comparer {
 }
 
 impl Comparer {
-    pub fn new(o: &Options, s: Sender<Command>, to_logger: Sender<String>) -> Comparer {
-        let log = Logger::new(o.verbose, to_logger);
+    pub fn new(n: String, o: &Options, s: Sender<Command>, to_logger: Sender<String>) -> Comparer {
+        let log = Logger::new(n, o.verbose, to_logger);
         Comparer {
             verbose: o.verbose,
             crypt: o.crypt,
@@ -36,32 +36,30 @@ impl Comparer {
     }
 
     pub fn gen_copy(&self, src: &Fold, dst: &Fold) {
-        self.logger.log_verbose(format!(
-            "INFO compare to find new/modify in {:?}",
-            &src.name
-        ));
+        self.logger
+            .verbose(format!("Compare to find new/modify from {:?}", &src.name));
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
         let res = self.gen_copy_recurse(&src, &dst, &racine_src, &racine_dst);
-        self.logger.log_timed_verbose(
-            format!("INFO duration to find copies from {:?} ", &src.name),
+        self.logger.timed(
+            format!("Finished finding copies from {:?}", &src.name),
             start,
         );
         res
     }
 
     pub fn gen_remove(&self, src: &Fold, dst: &Fold) {
-        self.logger.log_verbose(format!(
-            "INFO compare to find what to remove from {:?}",
+        self.logger.verbose(format!(
+            "Compare to find what to remove from {:?}",
             &dst.name
         ));
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
         let res = self.gen_remove_recurse(&src, &dst, &racine_src, &racine_dst);
-        self.logger.log_timed_verbose(
-            format!("INFO duration to find deletes from {:?}", &dst.name),
+        self.logger.timed(
+            format!("finished finding what to deletes from {:?}", &dst.name),
             start,
         );
         res
@@ -73,14 +71,17 @@ impl Comparer {
         //  -folders on both sides -> recuse on content
         for (key_src, val_src) in src.folds.iter() {
             if val_src.forbidden {
-                //src forder is not accessible. Should ignore it
-                self.logger.log_verbose(format!(
-                    "{:?}\\{:?} is forbidden -> ignoring",
-                    &racine_src, &key_src
-                ));
                 if !self.ignore_err {
-                    println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_src);
-                    std::process::exit(0);
+                    self.logger.terminating(
+                        format!("{:?}\\{:?} is forbidden", &racine_src, &key_src),
+                        -1,
+                    );
+                } else {
+                    //src forder is not accessible. Should ignore it
+                    self.logger.warning(format!(
+                        "{:?}\\{:?} is forbidden -> ignoring",
+                        &racine_src, &key_src
+                    ));
                 }
                 continue;
             }
@@ -93,14 +94,17 @@ impl Comparer {
                 }
                 Some(val_dst) => {
                     if val_dst.forbidden {
-                        //dst fold is not accessible. Should ignore it
-                        self.logger.log_verbose(format!(
-                            "{:?}\\{:?} is forbidden -> ignoring",
-                            &racine_dst, &key_src
-                        ));
                         if !self.ignore_err {
-                            println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_src);
-                            std::process::exit(0);
+                            self.logger.terminating(
+                                format!("{:?}\\{:?} is forbidden", &racine_src, &key_src),
+                                -1,
+                            );
+                        } else {
+                            //dst fold is not accessible. Should ignore it
+                            self.logger.warning(format!(
+                                "{:?}\\{:?} is forbidden -> ignoring",
+                                &racine_dst, &key_src
+                            ));
                         }
                         continue;
                     }
@@ -130,7 +134,7 @@ impl Comparer {
                         }
                         FicComp::SizeChange(t1, t2) => {
                             same = false;
-                            self.logger.log_verbose(format!(
+                            self.logger.verbose(format!(
                                 "DEBUG diff {:?} size difference {}/{}",
                                 val_src.name, t1, t2
                             ));
@@ -139,7 +143,7 @@ impl Comparer {
                             if self.verbose {
                                 let m1: DateTime<Utc> = d1.into();
                                 let m2: DateTime<Utc> = d2.into();
-                                self.logger.log_verbose(format!(
+                                self.logger.verbose(format!(
                                     "DEBUG diff    {:?}  date difference {}-{}",
                                     val_src.name,
                                     m1.format("%d/%m/%Y %T"),
@@ -163,14 +167,17 @@ impl Comparer {
         //  -folder on destination and not on src  -> to remove
         for (key_dst, val_dst) in dst.folds.iter() {
             if val_dst.forbidden {
-                //dst forder is not accessible. Should ignore it
-                self.logger.log_verbose(format!(
-                    "{:?}\\{:?} is forbidden -> ignoring",
-                    &racine_dst, &key_dst
-                ));
                 if !self.ignore_err {
-                    println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_dst);
-                    std::process::exit(0);
+                    self.logger.terminating(
+                        format!("{:?}\\{:?} is forbidden", &racine_dst, &key_dst),
+                        -1,
+                    );
+                } else {
+                    //dst fold is not accessible. Should ignore it
+                    self.logger.warning(format!(
+                        "{:?}\\{:?} is forbidden -> ignoring",
+                        &racine_dst, &key_dst
+                    ));
                 }
                 continue;
             }
@@ -183,14 +190,17 @@ impl Comparer {
                 }
                 Some(val_src) => {
                     if val_src.forbidden {
-                        //src forder is not accessible. Should ignore it
-                        self.logger.log_verbose(format!(
-                            "{:?}\\{:?} is forbidden -> ignoring",
-                            &racine_src, &key_dst
-                        ));
                         if !self.ignore_err {
-                            println!("{:?}\\{:?} is forbidden -> stopping", &racine_src, &key_dst);
-                            std::process::exit(0);
+                            self.logger.terminating(
+                                format!("{:?}\\{:?} is forbidden", &racine_src, &key_dst),
+                                -1,
+                            );
+                        } else {
+                            //src forder is not accessible. Should ignore it
+                            self.logger.warning(format!(
+                                "{:?}\\{:?} is forbidden -> ignoring",
+                                &racine_src, &key_dst
+                            ));
                         }
                         continue;
                     }
@@ -220,7 +230,7 @@ impl Comparer {
 
     fn deal_with_cmd(&self, cmd: Command) {
         if self.to_script.send(cmd).is_err() {
-            println!("Erreur sending command");
+            self.logger.error("sending command".to_string());
         }
     }
 }
@@ -268,11 +278,11 @@ fn start_thread_comp(
     } else {
         name = "comp_m";
     }
-    let cmp = Comparer::new(opt, to_script, to_logger);
+    let cmp = Comparer::new(name.to_string(), opt, to_script, to_logger);
     let handle = spawn(move || {
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
-        cmp.logger.log(format!("INFO start {}", &name));
+        cmp.logger.starting();
         let mut nb_comp = 0;
         for (s, d) in from_join {
             let start = SystemTime::now();
@@ -282,19 +292,13 @@ fn start_thread_comp(
                 cmp.gen_remove(&s, &d);
             }
             nb_comp += 1;
-            let end = SystemTime::now();
-            tps += end
-                .duration_since(start)
-                .expect("ERROR computing duration!");
+            tps += cmp.logger.timed(format!("Finished one {}", &name), start);
         }
-        let end_elapse = SystemTime::now();
-        let tps_elapse = end_elapse
-            .duration_since(start_elapse)
-            .expect("ERROR computing duration!");
-        cmp.logger.log(format!(
-            "INFO {} {} in {:?}/{:?}",
-            &name, nb_comp, tps, tps_elapse
-        ));
+        cmp.logger.dual_timed(
+            format!("Finished all {} ({})", &name, nb_comp),
+            tps,
+            start_elapse,
+        );
     });
     handle
 }
