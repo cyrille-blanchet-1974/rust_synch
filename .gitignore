@@ -16,4 +16,5 @@ Cargo.lock
 #but some files inside muste not be commited
 /test/run1.cmd
 /test/synch.exe
+/test/run1.log
 

@@ -7,6 +7,7 @@ mod logger;
 mod paramcli;
 mod readconf;
 mod scriptgen;
+mod writer;
 
 use comparer::*;
 use explorer::*;
@@ -79,7 +80,8 @@ fn main() {
     let (to_logger, from_all) = channel();
 
     //start the logger
-    start_thread_logger(from_all);
+    let logfile = Path::new(&param.fic_out).with_extension("log"); //log is same a config except the extension
+    start_thread_logger(from_all, logfile.to_path_buf());
 
     //start writer thread
     let hwriter = start_thread_writer(

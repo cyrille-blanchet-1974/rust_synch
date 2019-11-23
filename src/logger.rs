@@ -1,6 +1,10 @@
+use super::writer::*;
+
+use std::boxed::Box;
+use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{spawn, JoinHandle};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 pub struct Logger {
     verbose: bool,
@@ -43,13 +47,40 @@ impl Logger {
 * for now we only output what we receive to console
 *
 */
-pub fn start_thread_logger(from_all: Receiver<String>) -> JoinHandle<()> {
+pub fn start_thread_logger(from_all: Receiver<String>, output: PathBuf) -> JoinHandle<()> {
     let handle = spawn(move || {
-        println!("INFO start logger");
+        let mut writer: Box<dyn Writing>;
+        match WriterDisk::new(output, true) {
+            Some(w) => {
+                writer = Box::new(w);
+            }
+            None => {
+                //no logger ?
+                writer = Box::new(WriterConsole::new());
+            }
+        };
+        let start_elapse = SystemTime::now();
+        let mut tps = Duration::new(0, 0);
         for data in from_all {
-            println!("{}", data);
+            let start = SystemTime::now();
+            writer.as_mut().write(data);
+            let end = SystemTime::now();
+            tps += end
+                .duration_since(start)
+                .expect("ERROR computing duration!");
         }
+        let end_elapse = SystemTime::now();
+        let tps_elapse = end_elapse
+            .duration_since(start_elapse)
+            .expect("ERROR computing duration!");
+        let nb_ecr = writer.as_mut().get_nb_ecr();
+        writer.as_mut().write(
+            format!(
+                "INFO {} lignes writes in {:?}/{:?}",
+                nb_ecr, tps, tps_elapse
+            )
+            .to_string(),
+        );
     });
-    println!("INFO logger ends");
     handle
 }

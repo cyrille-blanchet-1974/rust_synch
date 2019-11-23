@@ -1,12 +1,12 @@
 use super::explorer::*;
+
 use std::collections::VecDeque;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
 use std::time::{Duration, SystemTime};
 
-fn log(data: String, to_logger: &Sender<String>) 
-{
+fn log(data: String, to_logger: &Sender<String>) {
     if to_logger.send(data).is_err() {
         println!("Erreur sending log");
     }
@@ -22,7 +22,7 @@ pub fn start_thread_joiner(
     from_read: Receiver<(Place, Fold)>,
     to_comp_p: Sender<(Arc<Fold>, Arc<Fold>)>,
     to_comp_m: Sender<(Arc<Fold>, Arc<Fold>)>,
-    to_logger: Sender<String>
+    to_logger: Sender<String>,
 ) -> JoinHandle<()> {
     let handle = spawn(move || {
         log("INFO start joiner".to_string(), &to_logger);
@@ -74,8 +74,15 @@ pub fn start_thread_joiner(
         let end_elapse = SystemTime::now();
         let tps_elapse = end_elapse
             .duration_since(start_elapse)
-            .expect("ERROR computing duration!");        
-        log(format!("INFO join ends ({} src/ {} dst/ {} comp in {:?}/{:?}",nb_src, nb_dst, nb_comp, tps, tps_elapse).to_string(), &to_logger);
+            .expect("ERROR computing duration!");
+        log(
+            format!(
+                "INFO join ends ({} src/ {} dst/ {} comp in {:?}/{:?}",
+                nb_src, nb_dst, nb_comp, tps, tps_elapse
+            )
+            .to_string(),
+            &to_logger,
+        );
     });
     handle
 }
