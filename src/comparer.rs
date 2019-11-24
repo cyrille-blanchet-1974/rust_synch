@@ -126,7 +126,11 @@ impl Comparer {
                     self.deal_with_cmd(Command::Copy(chemin_src, chemin_dst.to_path_buf()));
                 }
                 Some(val_dst) => {
-                    //existe both => must compare
+                    //TODO: pay attention to autorization
+                    //if src forbidden but exist on dst => copy will fail risk to loose dst
+                    //if dst forbidden but src autorized => copy will fail
+                    //if both forbidden => copy will also probably fail 
+                    //both exist => must compare
                     let mut same = true;
                     match val_src.comp(val_dst, self.crypt) {
                         FicComp::Same => {
@@ -144,10 +148,11 @@ impl Comparer {
                                 let m1: DateTime<Utc> = d1.into();
                                 let m2: DateTime<Utc> = d2.into();
                                 self.logger.verbose(format!(
-                                    "DEBUG diff    {:?}  date difference {}-{}",
+                                    "DEBUG diff    {:?}  date difference {}-{} (raw:{:?}/{:?})",
                                     val_src.name,
                                     m1.format("%d/%m/%Y %T"),
-                                    m2.format("%d/%m/%Y %T")
+                                    m2.format("%d/%m/%Y %T"),
+                                    d1,d2
                                 ));
                             }
                         }

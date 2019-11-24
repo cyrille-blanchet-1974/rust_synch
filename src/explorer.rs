@@ -73,11 +73,10 @@ impl Explorer {
                                     fold.add_fold(sub_fold);
                                 } else {
                                     let fic = Fic::new(&path);
-                                    if fic.is_some() {
-                                        fold.add_fic(fic.unwrap());
-                                    } else {
+                                    if fic.forbidden {
                                         self.file_forbidden_count += 1;
                                     }
+                                    fold.add_fic(fic);
                                 }
                             }
                         };

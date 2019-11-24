@@ -2,10 +2,14 @@ use std::ffi::OsString;
 use std::path::Path;
 use std::time::SystemTime;
 
+extern crate filetime;
+use filetime::FileTime;
+
 //File properties
 pub struct Fic {
     pub forbidden: bool,                //Forbidden folder
     pub modify: SystemTime,             //modification date
+    pub modify_second: i64,                 //same but in seconds
     pub len: u64,                       //length
     pub name: OsString,                 //name
 }
@@ -20,10 +24,11 @@ pub enum FicComp {
 
 impl Fic {
     //create a new 'file' in memory
-    pub fn new(p: &Path) -> Option<Fic> {
+    pub fn new(p: &Path) -> Fic {
         let m: SystemTime; //last modification date of the file
         let l: u64;        //length of the file
         let n: OsString;   //name of the file
+        let ms: i64;       //modify in seconds
         let mut f = false;
         match (*p).file_name() {
             None => {
@@ -40,6 +45,7 @@ impl Fic {
                 f=true;
                 l=0;
                 m=SystemTime::now();
+                ms=0;
             }
             Ok(md) => {
                 l = md.len();
@@ -52,16 +58,20 @@ impl Fic {
                         data
                     }
                 };
+                let mtime = FileTime::from_last_modification_time(&md);
+                ms = mtime.unix_seconds();
+        
             }
         }
+
         //we have all we need to produce our File struct
-        Some(Fic {
+        Fic {
             forbidden : f,
             modify: m,
+            modify_second: ms,
             len: l,
             name: n,
-        })
-
+        }
     }
 
     pub fn comp(&self, f: &Fic, crypt: bool) -> FicComp {
@@ -94,10 +104,20 @@ impl Fic {
             return true;
         }*/
         if self.len != 0 {
-            if self.modify != f.modify {
+            //the modify data is a very big number
+            //precision is 0.0000001 seconds !
+            //will compare on second level max
+            //modulo 10000000
+            /*if self.modify != f.modify {
+                return FicComp::DateChange(self.modify, f.modify);
+            }*/
+            if self.modify_second != f.modify_second {
                 return FicComp::DateChange(self.modify, f.modify);
             }
+
         }
         FicComp::Same
     }
 }
+
+
