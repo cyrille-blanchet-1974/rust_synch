@@ -27,8 +27,8 @@ impl Fold {
 
     pub fn new(dir: &Path) -> Fold {
         let n = match (*dir).file_name() {
-            Some(n) => n.to_os_string(), // pour un Fold ou un fic quelconque => son nom
-            None => (*dir).as_os_str().to_os_string(), //pour / ou c:\ ...   on garde tout
+            Some(n) => n.to_os_string(), // for a File or a folder we only keep his name
+            None => (*dir).as_os_str().to_os_string(), //for root ( / or c:\ ...) we keep the full path
         };
         Fold {
             name: n,
@@ -43,16 +43,23 @@ impl Fold {
     pub fn add_fold(&mut self, fold: Fold) {
         let n = Path::new(&fold.name);
         let name = (n.file_name().unwrap()).to_os_string();
-        self.folder_count += 1;
+        self.folder_count += 1; //add the folder to  the count
         let d = fold.get_counts();
-        self.folder_count += d.0;
-        self.file_count += d.1;
+        self.folder_count += d.0; //add all subfolder to  the count
+        self.file_count += d.1; //add all included files ro the count
         self.folds.insert(to_lower(&name), fold);
     }
 
     pub fn add_fic(&mut self, fic: Fic) {
         let n = Path::new(&fic.name);
-        let name = (n.file_name().unwrap()).to_os_string();
+        let name = match n.file_name() {
+            None => {
+                //should only fail if path is a folder and not a file...
+                println!("This error should only appear while developping !!! {:?} is a folder and not a file!",n);
+                std::process::exit(-2);
+            },
+            Some(nam) => { nam.to_os_string()}
+        };
         self.file_count += 1;
         self.fics.insert(to_lower(&name), fic);
     }
@@ -69,9 +76,10 @@ pub fn to_lower(name: &OsString) -> OsString {
         Ok(a) => {
             let a = a.to_lowercase();
             res = OsString::from(a);
-        }
+        },
         Err(a) => {
-            res = a;
+            println!("Error  appears while converting {:?} to uppercase. File/folder may contain non unicode characters!",&name);
+            res = a;//original osstring return if error
         }
     }
     return res;

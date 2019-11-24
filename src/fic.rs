@@ -4,9 +4,10 @@ use std::time::SystemTime;
 
 //File properties
 pub struct Fic {
-    pub modify: SystemTime,
-    pub len: u64,
-    pub name: OsString,
+    pub forbidden: bool,                //Forbidden folder
+    pub modify: SystemTime,             //modification date
+    pub len: u64,                       //length
+    pub name: OsString,                 //name
 }
 
 //File comparison results
@@ -20,26 +21,47 @@ pub enum FicComp {
 impl Fic {
     //create a new 'file' in memory
     pub fn new(p: &Path) -> Option<Fic> {
-        let m: SystemTime;
-        let l: u64;
-        let n: OsString;
-        n = ((*p).file_name().unwrap()).to_os_string(); //why should it failed ?
-        let metadata = p.metadata();
-        match metadata {
+        let m: SystemTime; //last modification date of the file
+        let l: u64;        //length of the file
+        let n: OsString;   //name of the file
+        let mut f = false;
+        match (*p).file_name() {
+            None => {
+                //should only fail if path is a folder and not a file...
+                println!("This error should only appear while developping !!! {:?} is a folder and not a file!",p);
+                std::process::exit(-2);
+            },
+            Some(name) => { n= name.to_os_string();}
+        }
+        //read file infos
+        match p.metadata() {
             Err(e) => {
                 println!("Error with metadata of {:?} -> {}", p, e); //appears on files of which i have no access right
-                None
+                f=true;
+                l=0;
+                m=SystemTime::now();
             }
             Ok(md) => {
                 l = md.len();
-                m = md.modified().unwrap(); //What OS doesn't support modification time of a file ?
-                Some(Fic {
-                    modify: m,
-                    len: l,
-                    name: n,
-                })
+                m = match md.modified() {
+                    Err(e) => {
+                        println!("It seems that your filesystem does not support modification time! It's odd. You should probably not use this prog on this system => {}",e);
+                        std::process::exit(-3);
+                    }
+                    Ok(data) => {
+                        data
+                    }
+                };
             }
         }
+        //we have all we need to produce our File struct
+        Some(Fic {
+            forbidden : f,
+            modify: m,
+            len: l,
+            name: n,
+        })
+
     }
 
     pub fn comp(&self, f: &Fic, crypt: bool) -> FicComp {
