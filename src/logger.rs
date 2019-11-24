@@ -1,3 +1,4 @@
+use super::constant::*;
 use super::writer::*;
 
 use std::boxed::Box;
@@ -47,7 +48,11 @@ impl Logger {
     }
 
     fn send(&self, data: MessageType) {
-        if self.to_logger.send(format!("{} says: {}", self.name, data)).is_err() {
+        if self
+            .to_logger
+            .send(format!("{} says: '{}'", self.name, data))
+            .is_err()
+        {
             println!("Erreur sending log");
         }
     }
@@ -137,8 +142,11 @@ pub fn start_thread_logger(from_all: Receiver<String>, output: PathBuf) -> JoinH
         let nb_ecr = writer.as_mut().get_nb_ecr();
         writer.as_mut().write(
             format!(
-                "logger says: {} lines writes in {:?}/{:?}",
-                nb_ecr, tps, tps_elapse
+                "{} says: '{} lines writes in {:?}/{:?}'",
+                LOGGER.to_string(),
+                nb_ecr,
+                tps,
+                tps_elapse
             )
             .to_string(),
         );

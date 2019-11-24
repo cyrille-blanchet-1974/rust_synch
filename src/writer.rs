@@ -57,7 +57,7 @@ impl WriterDisk{
 impl Writing for WriterDisk {
     //how to write a log to disk
     fn write(&mut self, data: String) {
-        let data2 = format!("{}\n",data);
+        let data2 = format!("{}\r\n",data);
         match self.writer.write_all(data2.as_bytes()) 
         {
             Err(e) =>{

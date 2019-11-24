@@ -1,3 +1,4 @@
+use super::constant::*;
 use super::logger::*;
 use super::writer::*;
 
@@ -95,14 +96,14 @@ pub fn gen_rd(dst: &PathBuf, nbfic: &u32, nbfold: &u32) -> OsString {
 * for each command receive from the chanel we write in output
 *
 */
-pub fn start_thread_writer(
+pub fn start_thread_scriptgen(
     from_comp: Receiver<Command>,
     output: PathBuf,
     to_logger: Sender<String>,
     verbose: bool,
 ) -> JoinHandle<()> {
     let handle = spawn(move || {
-        let logger = Logger::new("writer".to_string(),verbose, to_logger);
+        let logger = Logger::new(SCRIPTGEN.to_string(), verbose, to_logger);
         logger.starting();
         let mut writer: Box<dyn Writing>;
         match WriterDisk::new(output, true) {
@@ -114,22 +115,30 @@ pub fn start_thread_writer(
                 writer = Box::new(WriterConsole::new());
             }
         };
+        //unbox -> get a pointer to either a WriterDisk or a WriterConsole (anything witch implement Writing trait)
+        let writer = writer.as_mut(); //redifinig writer to remove all .as_mut()
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
-        writer.as_mut().write("@echo off".to_string());
-        writer.as_mut().write("chcp 65001".to_string()); //utf8 codepage
+        writer.write("@echo off".to_string());
+        writer.write("chcp 65001".to_string()); //utf8 codepage
         for data in from_comp {
             let start = SystemTime::now();
-            writer
-                .as_mut()
-                .write(data.to_command().to_str().unwrap().to_string());
+            let c = data.to_command();
+            let cmd = match c.to_str() {
+                Some(s) => s,
+                None => {
+                    logger.terminating(format!("Non unicode characters in {:?}", c), -4);
+                    return; //dead code beacause terminating stop the prg but compiler don't know that
+                }
+            };
+            writer.write(cmd.to_string());
             let end = SystemTime::now();
             tps += end
                 .duration_since(start)
                 .expect("ERROR computing duration!");
             //no log here (too much too write a log for each command written to script)
         }
-        let nb_ecr = writer.as_mut().get_nb_ecr();
+        let nb_ecr = writer.get_nb_ecr();
         logger.dual_timed(
             format!("Finished: {} lines writens", nb_ecr),
             tps,

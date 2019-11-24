@@ -1,4 +1,5 @@
 mod comparer;
+mod constant;
 mod explorer;
 mod fic;
 mod fold;
@@ -10,8 +11,12 @@ mod scriptgen;
 mod writer;
 
 use comparer::*;
+use constant::*;
 use explorer::*;
 use join::*;
+use logger::*;
+use paramcli::*;
+use scriptgen::*;
 
 use std::path::Path;
 use std::sync::mpsc::channel;
@@ -81,10 +86,10 @@ fn main() {
 
     //start the logger
     let logfile = Path::new(&param.fic_out).with_extension("log"); //log is same a config except the extension
-    start_thread_logger(from_all, logfile.to_path_buf());
+    let hlogger = start_thread_logger(from_all, logfile.to_path_buf());
 
     //start writer thread
-    let hwriter = start_thread_writer(
+    let hscriptgen = start_thread_scriptgen(
         from_comp,
         Path::new(&param.fic_out).to_path_buf(),
         to_logger.clone(),
@@ -113,10 +118,25 @@ fn main() {
     let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger);
 
     //wait for threads to stop
-    hreadsrc.join().unwrap();
-    hreaddst.join().unwrap();
-    hjoin.join().unwrap();
-    hcompp.join().unwrap();
-    hcompm.join().unwrap();
-    hwriter.join().unwrap();
+    if hreadsrc.join().is_err() {
+        println!("Thread {} finished with error", SRCREADER);
+    }
+    if hreaddst.join().is_err() {
+        println!("Thread {} finished with error", DSTREADER);
+    }
+    if hjoin.join().is_err() {
+        println!("Thread {} finished with error", JOINER);
+    }
+    if hcompp.join().is_err() {
+        println!("Thread {} finished with error", COMPP);
+    }
+    if hcompm.join().is_err() {
+        println!("Thread {} finished with error", COMPM);
+    }
+    if hscriptgen.join().is_err() {
+        println!("Thread {} finished with error", SCRIPTGEN);
+    }
+    if hlogger.join().is_err() {
+        println!("Thread {} finished with error", LOGGER);
+    }
 }

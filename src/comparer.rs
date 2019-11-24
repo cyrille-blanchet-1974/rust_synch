@@ -1,7 +1,8 @@
-pub use super::fold::*;
-pub use super::logger::*;
-pub use super::paramcli::*;
-pub use super::scriptgen::*;
+use super::constant::*;
+use super::fold::*;
+use super::logger::*;
+use super::paramcli::*;
+use super::scriptgen::*;
 
 use std::path::Path;
 use std::sync::mpsc::Receiver;
@@ -129,7 +130,7 @@ impl Comparer {
                     //TODO: pay attention to autorization
                     //if src forbidden but exist on dst => copy will fail risk to loose dst
                     //if dst forbidden but src autorized => copy will fail
-                    //if both forbidden => copy will also probably fail 
+                    //if both forbidden => copy will also probably fail
                     //both exist => must compare
                     let mut same = true;
                     match val_src.comp(val_dst, self.crypt) {
@@ -152,7 +153,8 @@ impl Comparer {
                                     val_src.name,
                                     m1.format("%d/%m/%Y %T"),
                                     m2.format("%d/%m/%Y %T"),
-                                    d1,d2
+                                    d1,
+                                    d2
                                 ));
                             }
                         }
@@ -279,9 +281,9 @@ fn start_thread_comp(
     let plus = plus;
     let name;
     if plus {
-        name = "comp_p";
+        name = COMPP;
     } else {
-        name = "comp_m";
+        name = COMPM;
     }
     let cmp = Comparer::new(name.to_string(), opt, to_script, to_logger);
     let handle = spawn(move || {

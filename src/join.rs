@@ -1,4 +1,7 @@
+use super::constant::*;
 use super::explorer::*;
+use super::fold::*;
+use super::logger::*;
 
 use std::collections::VecDeque;
 use std::sync::mpsc::{Receiver, Sender};
@@ -20,7 +23,7 @@ pub fn start_thread_joiner(
     verbose: bool,
 ) -> JoinHandle<()> {
     let handle = spawn(move || {
-        let logger = Logger::new("join".to_string(),verbose, to_logger);
+        let logger = Logger::new(JOINER.to_string(), verbose, to_logger);
         logger.starting();
         //elapse timings (duration of thread)
         let start_elapse = SystemTime::now();
@@ -50,7 +53,7 @@ pub fn start_thread_joiner(
             if !src.is_empty() && !dst.is_empty() {
                 logger.verbose("got a pair -> sending to comparers".to_string());
                 //when we have at least a source and a destination we have our tuple
-                let s = Arc::new(src.pop_front().unwrap());
+                let s = Arc::new(src.pop_front().unwrap()); //unwrap should not panic. pop must work as we check emptiness below
                 let d = Arc::new(dst.pop_front().unwrap());
                 //and send then to the comparison threads
                 //note thart we remove the data from the lists because we don't need to keep them after they are sent

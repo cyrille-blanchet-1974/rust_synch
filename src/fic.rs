@@ -7,11 +7,11 @@ use filetime::FileTime;
 
 //File properties
 pub struct Fic {
-    pub forbidden: bool,                //Forbidden folder
-    pub modify: SystemTime,             //modification date
-    pub modify_second: i64,                 //same but in seconds
-    pub len: u64,                       //length
-    pub name: OsString,                 //name
+    pub forbidden: bool,    //Forbidden folder
+    pub modify: SystemTime, //modification date
+    pub modify_second: i64, //same but in seconds
+    pub len: u64,           //length
+    pub name: OsString,     //name
 }
 
 //File comparison results
@@ -26,26 +26,28 @@ impl Fic {
     //create a new 'file' in memory
     pub fn new(p: &Path) -> Fic {
         let m: SystemTime; //last modification date of the file
-        let l: u64;        //length of the file
-        let n: OsString;   //name of the file
-        let ms: i64;       //modify in seconds
+        let l: u64; //length of the file
+        let n: OsString; //name of the file
+        let ms: i64; //modify in seconds
         let mut f = false;
         match (*p).file_name() {
             None => {
                 //should only fail if path is a folder and not a file...
                 println!("This error should only appear while developping !!! {:?} is a folder and not a file!",p);
                 std::process::exit(-2);
-            },
-            Some(name) => { n= name.to_os_string();}
+            }
+            Some(name) => {
+                n = name.to_os_string();
+            }
         }
         //read file infos
         match p.metadata() {
             Err(e) => {
                 println!("Error with metadata of {:?} -> {}", p, e); //appears on files of which i have no access right
-                f=true;
-                l=0;
-                m=SystemTime::now();
-                ms=0;
+                f = true;
+                l = 0;
+                m = SystemTime::now();
+                ms = 0;
             }
             Ok(md) => {
                 l = md.len();
@@ -54,19 +56,16 @@ impl Fic {
                         println!("It seems that your filesystem does not support modification time! It's odd. You should probably not use this prog on this system => {}",e);
                         std::process::exit(-3);
                     }
-                    Ok(data) => {
-                        data
-                    }
+                    Ok(data) => data,
                 };
                 let mtime = FileTime::from_last_modification_time(&md);
                 ms = mtime.unix_seconds();
-        
             }
         }
 
         //we have all we need to produce our File struct
         Fic {
-            forbidden : f,
+            forbidden: f,
             modify: m,
             modify_second: ms,
             len: l,
@@ -114,10 +113,7 @@ impl Fic {
             if self.modify_second != f.modify_second {
                 return FicComp::DateChange(self.modify, f.modify);
             }
-
         }
         FicComp::Same
     }
 }
-
-

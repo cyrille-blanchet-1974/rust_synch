@@ -42,7 +42,14 @@ impl Fold {
 
     pub fn add_fold(&mut self, fold: Fold) {
         let n = Path::new(&fold.name);
-        let name = (n.file_name().unwrap()).to_os_string();
+        let name = match n.file_name() {
+            None => {
+                //should only fail if path is a root
+                println!("This error should only appear while developping !!! {:?} is a root not a subfolder!",n);
+                std::process::exit(-2);
+            }
+            Some(nam) => nam.to_os_string(),
+        };
         self.folder_count += 1; //add the folder to  the count
         let d = fold.get_counts();
         self.folder_count += d.0; //add all subfolder to  the count
@@ -57,8 +64,8 @@ impl Fold {
                 //should only fail if path is a folder and not a file...
                 println!("This error should only appear while developping !!! {:?} is a folder and not a file!",n);
                 std::process::exit(-2);
-            },
-            Some(nam) => { nam.to_os_string()}
+            }
+            Some(nam) => nam.to_os_string(),
         };
         self.file_count += 1;
         self.fics.insert(to_lower(&name), fic);
@@ -76,10 +83,10 @@ pub fn to_lower(name: &OsString) -> OsString {
         Ok(a) => {
             let a = a.to_lowercase();
             res = OsString::from(a);
-        },
+        }
         Err(a) => {
             println!("Error  appears while converting {:?} to uppercase. File/folder may contain non unicode characters!",&name);
-            res = a;//original osstring return if error
+            res = a; //original osstring return if error
         }
     }
     return res;

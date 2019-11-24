@@ -1,6 +1,7 @@
-pub use super::fold::*;
-pub use super::logger::*;
-pub use super::paramcli::*;
+use super::constant::*;
+use super::fold::*;
+use super::logger::*;
+use super::paramcli::*;
 
 use std::fs;
 use std::path::Path;
@@ -18,7 +19,7 @@ pub struct Explorer {
 }
 
 impl Explorer {
-    pub fn new(n : String, o: &Options, to_logger: Sender<String>) -> Explorer {
+    pub fn new(n: String, o: &Options, to_logger: Sender<String>) -> Explorer {
         let log = Logger::new(n, o.verbose, to_logger);
         Explorer {
             ignore_err: o.ignore_err,
@@ -99,6 +100,12 @@ impl Place {
             Place::Dst => "destination".to_string(),
         }
     }
+    pub fn to_name(&self) -> String {
+        match self {
+            Place::Src => SRCREADER.to_string(),
+            Place::Dst => DSTREADER.to_string(),
+        }
+    }
     pub fn clone(&self) -> Place {
         match self {
             Place::Src => Place::Src,
@@ -114,38 +121,38 @@ fn start_thread_read(
     opt: &Options,
     to_logger: Sender<String>,
 ) -> JoinHandle<()> {
-    let name = format!("{}_reader", what.to_string());
-    let mut explorer = Explorer::new(name.to_string(), opt, to_logger);
+    let mut explorer = Explorer::new(what.to_name(), opt, to_logger.clone());
+    let logger = Logger::new(what.to_name(), opt.verbose, to_logger);
     let handle = spawn(move || {
-        explorer.logger.starting();
-        //timings: elapse count all and the other counts only acting time        
+        logger.starting();
+        //timings: elapse count all and the other counts only acting time
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
         //number of item receive from chanel
         let mut nb = 0;
-        explorer
-            .logger
-            .log(format!("{} folders to read",  &data.len()));
+        logger.log(format!("{} folders to read", &data.len()));
         //iterate on sources
         for d in data {
-            explorer
-                .logger
-                .verbose(format!("start reading {} ",&d.to_str().unwrap()));
+            let s = match d.to_str() {
+                Some(x) => x,
+                None => {
+                    logger.terminating(format!("Non unicode characters in {:?}", d), -4);
+                    return; //dead code beacause terminating stop the prg but compiler don't know that
+                }
+            };
+            logger.verbose(format!("start reading {} ", s));
             //read time only
             let start = SystemTime::now();
-            let src = explorer.run(&Path::new(d.to_str().unwrap()));
-            tps += explorer.logger.timed(
-                format!("finished reading {} ",&d.to_str().unwrap()),
-                start,
-            );
+            let src = explorer.run(&Path::new(s));
+            tps += logger.timed(format!("finished reading {} ", s), start);
             //send data to join thread thru MPSC chanel
             if to_join.send((what.clone(), src)).is_err() {
-                explorer.logger.error("seding data to join".to_string());
+                logger.error("seding data to join".to_string());
                 return;
             }
             nb += 1;
         }
-        explorer.logger.dual_timed(
+        logger.dual_timed(
             format!("finished all reading {} items", nb),
             tps,
             start_elapse,
