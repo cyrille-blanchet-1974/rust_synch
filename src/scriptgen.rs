@@ -22,7 +22,7 @@ impl Command {
             Command::Copy(src, dst) => gen_copy(src, dst),
             Command::CopyRecurs(src, dst) => gen_copy_rec(src, dst),
             Command::RemoveFile(dst) => gen_del(dst),
-            Command::RemoveFold(dst, nbfold, nbfic) => gen_rd(dst, nbfold, nbfic),
+            Command::RemoveFold(dst, nbfold, nbfic) => gen_rd(dst, *nbfold, *nbfic),
         }
     }
 }
@@ -68,9 +68,9 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
     res
 }
 
-pub fn gen_rd(dst: &PathBuf, nbfic: &u32, nbfold: &u32) -> OsString {
+pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     let mut res = OsString::new();
-    if *nbfold > 10 || *nbfic > 100 {
+    if nbfold > 10 || nbfic > 100 {
         let s = format!(
             "Echo {:?} Contains {} folders and {}  files.\n",
             dst, nbfold, nbfic
@@ -102,7 +102,7 @@ pub fn start_thread_scriptgen(
     to_logger: Sender<String>,
     verbose: bool,
 ) -> JoinHandle<()> {
-    let handle = spawn(move || {
+    spawn(move || {
         let logger = Logger::new(SCRIPTGEN.to_string(), verbose, to_logger);
         logger.starting();
         let mut writer: Box<dyn Writing>;
@@ -144,6 +144,5 @@ pub fn start_thread_scriptgen(
             tps,
             start_elapse,
         );
-    });
-    handle
+    })
 }

@@ -3,6 +3,7 @@ use super::fold::*;
 use super::logger::*;
 use super::paramcli::*;
 
+use std::fmt;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -93,13 +94,16 @@ pub enum Place {
     Dst,
 }
 
-impl Place {
-    pub fn to_string(&self) -> String {
+impl fmt::Display for Place {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Place::Src => "source".to_string(),
-            Place::Dst => "destination".to_string(),
+            Place::Src => write!(f, "source"),
+            Place::Dst => write!(f, "destination"),
         }
     }
+}
+
+impl Place {
     pub fn to_name(&self) -> String {
         match self {
             Place::Src => SRCREADER.to_string(),
@@ -123,7 +127,7 @@ fn start_thread_read(
 ) -> JoinHandle<()> {
     let mut explorer = Explorer::new(what.to_name(), opt, to_logger.clone());
     let logger = Logger::new(what.to_name(), opt.verbose, to_logger);
-    let handle = spawn(move || {
+    spawn(move || {
         logger.starting();
         //timings: elapse count all and the other counts only acting time
         let start_elapse = SystemTime::now();
@@ -157,8 +161,7 @@ fn start_thread_read(
             tps,
             start_elapse,
         );
-    });
-    handle
+    })
 }
 
 /**

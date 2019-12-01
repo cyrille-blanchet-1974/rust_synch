@@ -9,7 +9,7 @@ pub struct Readconf {
 }
 
 impl Readconf {
-    pub fn new(ficconf: &String) -> Readconf {
+    pub fn new(ficconf: &str) -> Readconf {
         let mut src = Vec::new();
         let mut dst = Vec::new();
 
@@ -21,19 +21,14 @@ impl Readconf {
             Ok(f) => {
                 let buffered = BufReader::new(f);
                 for line in buffered.lines() {
-                    match line {
-                        Ok(l) => {
-                            let res = get_val(&l);
-                            if l.to_lowercase().starts_with("source=") {
-                                src.push(res);
-                            } else {
-                                if l.to_lowercase().starts_with("destination=") {
-                                    dst.push(res);
-                                }
-                            }
+                    if let Ok(l) = line {
+                        let res = get_val(&l);
+                        if l.to_lowercase().starts_with("source=") {
+                            src.push(res);
+                        } else if l.to_lowercase().starts_with("destination=") {
+                            dst.push(res);
                         }
-                        Err(_) => {}
-                    }
+                    } //TODO : else ...
                 }
             }
         }
@@ -45,9 +40,9 @@ impl Readconf {
     }
 }
 
-fn get_val(arg: &String) -> String {
+fn get_val(arg: &str) -> String {
     let mut res = String::new();
-    for part in arg.split("=").skip(1) {
+    for part in arg.split('=').skip(1) {
         if !res.is_empty() {
             res.push_str("=");
         }

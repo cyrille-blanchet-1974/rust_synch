@@ -35,7 +35,7 @@ impl Paramcli {
         let mut conf = String::new();
 
         let args: Vec<String> = env::args().skip(1).collect();
-        if args.len() == 0 {
+        if args.is_empty() {
             help();
         }
         for arg in args {
@@ -87,7 +87,7 @@ impl Paramcli {
             println!("--------------------------------------------------");
             help();
         }
-        if src.len() == 0 {
+        if src.is_empty() {
             println!("ERROR! nothing to synch!");
             println!("--------------------------------------------------");
             help();
@@ -129,13 +129,13 @@ impl Paramcli {
 
 fn get_param(arg: String) -> String {
     let mut res = String::new();
-    for part in arg.split(":").skip(1) {
+    for part in arg.split(':').skip(1) {
         if !res.is_empty() {
             res.push_str(":");
         }
         res.push_str(part);
     }
-    if arg.ends_with(":") {
+    if arg.ends_with(':') {
         res.push_str(":");
     }
     res

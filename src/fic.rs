@@ -24,56 +24,56 @@ pub enum FicComp {
 
 impl Fic {
     //create a new 'file' in memory
-    pub fn new(p: &Path) -> Fic {
-        let m: SystemTime; //last modification date of the file
-        let l: u64; //length of the file
-        let n: OsString; //name of the file
-        let ms: i64; //modify in seconds
-        let mut f = false;
-        match (*p).file_name() {
+    pub fn new(path: &Path) -> Fic {
+        let modify: SystemTime; //last modification date of the file
+        let len: u64; //length of the file
+        let name: OsString; //name of the file
+        let modify_second: i64; //modify in seconds
+        let mut forbidden = false;
+        match (*path).file_name() {
             None => {
                 //should only fail if path is a folder and not a file...
-                println!("This error should only appear while developping !!! {:?} is a folder and not a file!",p);
+                println!("This error should only appear while developping !!! {:?} is a folder and not a file!",path);
                 std::process::exit(-2);
             }
-            Some(name) => {
-                n = name.to_os_string();
+            Some(nam) => {
+                name = nam.to_os_string();
             }
         }
         //read file infos
-        match p.metadata() {
-            Err(e) => {
-                println!("Error with metadata of {:?} -> {}", p, e); //appears on files of which i have no access right
-                f = true;
-                l = 0;
-                m = SystemTime::now();
-                ms = 0;
+        match path.metadata() {
+            Err(err) => {
+                println!("Error with metadata of {:?} -> {}", path, err); //appears on files of which i have no access right
+                forbidden = true;
+                len = 0;
+                modify = SystemTime::now();
+                modify_second = 0;
             }
-            Ok(md) => {
-                l = md.len();
-                m = match md.modified() {
+            Ok(metadata) => {
+                len = metadata.len();
+                modify = match metadata.modified() {
                     Err(e) => {
                         println!("It seems that your filesystem does not support modification time! It's odd. You should probably not use this prog on this system => {}",e);
                         std::process::exit(-3);
                     }
                     Ok(data) => data,
                 };
-                let mtime = FileTime::from_last_modification_time(&md);
-                ms = mtime.unix_seconds();
+                let mtime = FileTime::from_last_modification_time(&metadata);
+                modify_second = mtime.unix_seconds();
             }
         }
 
         //we have all we need to produce our File struct
         Fic {
-            forbidden: f,
-            modify: m,
-            modify_second: ms,
-            len: l,
-            name: n,
+            forbidden,
+            modify,
+            modify_second,
+            len,
+            name,
         }
     }
 
-    pub fn comp(&self, f: &Fic, crypt: bool) -> FicComp {
+    pub fn comp(&self, other: &Fic, crypt: bool) -> FicComp {
         if crypt {
             //host use crypting
             //source is not crypted but host seems to think it should be
@@ -81,22 +81,20 @@ impl Fic {
             //when asking size host remove 4096 bytes to answer
             //it do so on my uncrypted source
             //si if size of destination is above 4096 we must add 4096 to size of source when comparing
-            if f.len >= 4096 {
+            if other.len >= 4096 {
                 //we look at destination size which is the only good one
                 //if more than 4096 then we remove them from destination
-                if (self.len + 4096) != f.len {
-                    return FicComp::SizeChange(self.len, f.len);
+                if (self.len + 4096) != other.len {
+                    return FicComp::SizeChange(self.len, other.len);
                 }
             } else {
                 //less than 4096, no crypting so direct compare
-                if self.len != f.len {
-                    return FicComp::SizeChange(self.len, f.len);
+                if self.len != other.len {
+                    return FicComp::SizeChange(self.len, other.len);
                 }
             }
-        } else {
-            if self.len != f.len {
-                return FicComp::SizeChange(self.len, f.len);
-            }
+        } else if self.len != other.len {
+            return FicComp::SizeChange(self.len, other.len);
         }
         /*if self.name != f.name
         {
@@ -110,8 +108,8 @@ impl Fic {
             /*if self.modify != f.modify {
                 return FicComp::DateChange(self.modify, f.modify);
             }*/
-            if self.modify_second != f.modify_second {
-                return FicComp::DateChange(self.modify, f.modify);
+            if self.modify_second != other.modify_second {
+                return FicComp::DateChange(self.modify, other.modify);
             }
         }
         FicComp::Same

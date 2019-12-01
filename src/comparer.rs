@@ -42,12 +42,11 @@ impl Comparer {
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
-        let res = self.gen_copy_recurse(&src, &dst, &racine_src, &racine_dst);
+        self.gen_copy_recurse(&src, &dst, &racine_src, &racine_dst);
         self.logger.timed(
             format!("Finished finding copies from {:?}", &src.name),
             start,
         );
-        res
     }
 
     pub fn gen_remove(&self, src: &Fold, dst: &Fold) {
@@ -58,12 +57,11 @@ impl Comparer {
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
-        let res = self.gen_remove_recurse(&src, &dst, &racine_src, &racine_dst);
+        self.gen_remove_recurse(&src, &dst, &racine_src, &racine_dst);
         self.logger.timed(
             format!("finished finding what to deletes from {:?}", &dst.name),
             start,
         );
-        res
     }
 
     fn gen_copy_recurse(&self, src: &Fold, dst: &Fold, racine_src: &Path, racine_dst: &Path) {
@@ -279,14 +277,9 @@ fn start_thread_comp(
     to_logger: Sender<String>,
 ) -> JoinHandle<()> {
     let plus = plus;
-    let name;
-    if plus {
-        name = COMPP;
-    } else {
-        name = COMPM;
-    }
+    let name = if plus { COMPP } else { COMPM };
     let cmp = Comparer::new(name.to_string(), opt, to_script, to_logger);
-    let handle = spawn(move || {
+    spawn(move || {
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
         cmp.logger.starting();
@@ -306,6 +299,5 @@ fn start_thread_comp(
             tps,
             start_elapse,
         );
-    });
-    handle
+    })
 }

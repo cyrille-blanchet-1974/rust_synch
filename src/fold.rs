@@ -77,17 +77,16 @@ impl Fold {
 }
 
 pub fn to_lower(name: &OsString) -> OsString {
-    let res: OsString;
     let clone = OsString::from(name);
     match clone.into_string() {
         Ok(a) => {
             let a = a.to_lowercase();
-            res = OsString::from(a);
+            OsString::from(a)
         }
         Err(a) => {
             println!("Error  appears while converting {:?} to uppercase. File/folder may contain non unicode characters!",&name);
-            res = a; //original osstring return if error
+            //original osstring return if error
+            a
         }
     }
-    return res;
 }

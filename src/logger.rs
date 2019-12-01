@@ -41,9 +41,9 @@ impl fmt::Display for MessageType {
 impl Logger {
     pub fn new(name: String, verbose: bool, to_logger: Sender<String>) -> Logger {
         Logger {
-            name: name,
-            verbose: verbose,
-            to_logger: to_logger,
+            name,
+            verbose,
+            to_logger,
         }
     }
 
@@ -114,7 +114,7 @@ impl Logger {
 *
 */
 pub fn start_thread_logger(from_all: Receiver<String>, output: PathBuf) -> JoinHandle<()> {
-    let handle = spawn(move || {
+    spawn(move || {
         let mut writer: Box<dyn Writing>;
         match WriterDisk::new(output, true) {
             Some(w) => {
@@ -150,6 +150,5 @@ pub fn start_thread_logger(from_all: Receiver<String>, output: PathBuf) -> JoinH
             )
             .to_string(),
         );
-    });
-    handle
+    })
 }

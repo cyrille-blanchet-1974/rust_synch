@@ -22,7 +22,7 @@ pub fn start_thread_joiner(
     to_logger: Sender<String>,
     verbose: bool,
 ) -> JoinHandle<()> {
-    let handle = spawn(move || {
+    spawn(move || {
         let logger = Logger::new(JOINER.to_string(), verbose, to_logger);
         logger.starting();
         //elapse timings (duration of thread)
@@ -77,6 +77,5 @@ pub fn start_thread_joiner(
             tps,
             start_elapse,
         );
-    });
-    handle
+    })
 }
