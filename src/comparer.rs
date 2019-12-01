@@ -88,7 +88,7 @@ impl Comparer {
                 None => {
                     //do not exist on dst -> generate recursive copy
                     let chemin_src = Path::new(&racine_src).join(&(val_src.name));
-                    let chemin_dst = Path::new(&racine_dst);
+                    let chemin_dst = Path::new(&racine_dst).join(&(val_src.name));
                     self.deal_with_cmd(Command::CopyRecurs(chemin_src, chemin_dst.to_path_buf()));
                 }
                 Some(val_dst) => {
