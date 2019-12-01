@@ -80,7 +80,7 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
         res.push("Echo Y to Delete\n");
         res.push("Echo N to keep\n");
         res.push("choice /C YN\n");
-        res.push("if '%ERRORLEVE%'=='1' ");
+        res.push("if '%ERRORLEVEL%'=='1' ");
     }
     res.push(r###"RD /S /Q ""###);
     res.push(dst);
