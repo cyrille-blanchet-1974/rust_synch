@@ -111,15 +111,20 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     let mut res = OsString::new();
     if nbfold > 10 || nbfic > 100 {
         let s = format!(
-            "Echo {:?} Contains {} folders and {}  files.\n",
+            "Echo {:?} Contains {} folders and {}  files.",
             dst, nbfold, nbfic
         );
         //check shell command for asking 
         res.push(s);
-        res.push("Echo Please confirm deletation\n");
-        res.push("Echo Y to Delete\n");
-        res.push("Echo N to keep\n");
-        res.push("choice /C YN\n");
+        res.push(EOL);
+        res.push("Echo Please confirm deletation");
+        res.push(EOL);
+        res.push("Echo Y to Delete");
+        res.push(EOL);
+        res.push("Echo N to keep");
+        res.push(EOL);
+        res.push("choice /C YN");
+        res.push(EOL);
         res.push("if '%ERRORLEVEL%'=='1' ");
     }
     res.push(r###"RD /S /Q ""###);
@@ -131,37 +136,37 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
 }
 #[cfg(unix)]
 pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
-    let mut res = OsString::new();
-    //linux remove folder and content rm -rf fold
-    //TODO: asking in linux 
-    //TODO : Eol
+    let mut cmd = OsString::new(); 
+    cmd.push(r###"rm -rf ""###);
+    cmd.push(dst);
+    cmd.push(r###"""###);
+    //   -rf  recursive and force
     if nbfold > 10 || nbfic > 100 {
-        /*
-            echo "Do you wish to delete this folder?"
-            select yn in "Yes" "No"; do
-                case $yn in
-                    Yes ) rm -rf dst; break;;
-                    No ) break;;
-                esac
-            done
-        */
+        let mut res = OsString::new();
         let s = format!(
-            "Echo {:?} Contains {} folders and {}  files.\n",
+            "echo {:?} Contains {} folders and {}  files.",
             dst, nbfold, nbfic
         );
-        //check shell command for asking 
         res.push(s);
-        res.push("Echo Please confirm deletation\n");
-        res.push("Echo Y to Delete\n");
-        res.push("Echo N to keep\n");
-        res.push("choice /C YN\n");
-        res.push("if '%ERRORLEVEL%'=='1' ");
+        res.push(EOL);
+        res.push("echo Do you wish to delete this folder? \"Yes\" will Proceed, Anything Else will keep it");
+        res.push(EOL);
+        res.push("    read yn");
+        res.push(EOL);
+        res.push("        case $yn in");
+        res.push(EOL);
+        res.push("            Yes) ");
+                            res.push(cmd);
+                                res.push(";;");
+        res.push(EOL);
+        res.push("            *) echo avoid delete ;;");
+        res.push(EOL);
+        res.push("        esac");
+        res.push(EOL);
+        res
+    }else{ 
+        cmd 
     }
-    res.push(r###"rm -rf ""###);
-    res.push(dst);
-    res.push(r###"""###);
-    //   -rf  recursive and force
-    res
 }
 
 #[cfg(unix)]
