@@ -17,4 +17,5 @@ Cargo.lock
 /test/run1.cmd
 /test/synch.exe
 /test/run1.log
-
+/test/run1.sh
+/test/synch

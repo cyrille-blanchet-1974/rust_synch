@@ -27,9 +27,9 @@ impl Command {
     }
 }
 
+#[cfg(windows)]
 pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
-    //linux copy cp --preserve=all src/file dst
     res.push(r###"XCOPY ""###);
     res.push(src);
     res.push(r###"" ""###);
@@ -39,6 +39,17 @@ pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     // /Y   No confirmation ask to user
     // /K   copy attributes
     // /R   replace Read only files
+    res
+}
+#[cfg(unix)]
+pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
+    let mut res = OsString::new();
+    res.push(r###"cp --preserve=all ""###);
+    res.push(src);
+    res.push(r###"" ""###);
+    res.push(dst);
+    res.push(r###"" "###);
+    // --preseve=all copy attributes ownership datetime 
     res
 }
 
@@ -68,7 +79,8 @@ pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     res.push("/");
     res.push(r###"" ""###);
     res.push(dst);
-    // --preseve=all copy attributes ownershit datetime 
+    res.push(r###"" "###);
+    // --preseve=all copy attributes ownership datetime 
     // -r             recursive
     res
 }
@@ -87,8 +99,9 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
 pub fn gen_del(dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
     //linux remove rm -f fic
-    res.push(r###"RM -f ""###);
+    res.push(r###"rm -f ""###);
     res.push(dst);
+    res.push(r###"" "###);
     //   -f   Force delete 
     res
 }
