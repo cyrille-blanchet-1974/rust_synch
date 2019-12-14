@@ -29,6 +29,7 @@ impl Command {
 
 pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
+    //linux copy cp --preserve=all src/file dst
     res.push(r###"XCOPY ""###);
     res.push(src);
     res.push(r###"" ""###);
@@ -43,6 +44,7 @@ pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
 
 pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
+    //linux recursive copy : cp --preserve=all -r src/ dst
     res.push(r###"XCOPY ""###);
     res.push(src);
     res.push("\\*.*");
@@ -60,6 +62,7 @@ pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
 
 pub fn gen_del(dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
+    //linux remove rm -f fic
     res.push(r###"DEL ""###);
     res.push(dst);
     res.push(r###"" /F /A "###);
@@ -70,11 +73,13 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
 
 pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     let mut res = OsString::new();
+    //linux remove folder and content rm -rf fold
     if nbfold > 10 || nbfic > 100 {
         let s = format!(
             "Echo {:?} Contains {} folders and {}  files.\n",
             dst, nbfold, nbfic
         );
+        //check shell command for asking 
         res.push(s);
         res.push("Echo Please confirm deletation\n");
         res.push("Echo Y to Delete\n");
@@ -119,6 +124,7 @@ pub fn start_thread_scriptgen(
         let writer = writer.as_mut(); //redifinig writer to remove all .as_mut()
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
+        //linux; start with #/usr/bin/sh
         writer.write("@echo off".to_string());
         writer.write("chcp 65001".to_string()); //utf8 codepage
         for data in from_comp {
