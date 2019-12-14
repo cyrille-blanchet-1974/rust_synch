@@ -42,9 +42,9 @@ pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     res
 }
 
+#[cfg(windows)]
 pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
-    //linux recursive copy : cp --preserve=all -r src/ dst
     res.push(r###"XCOPY ""###);
     res.push(src);
     res.push("\\*.*");
@@ -59,10 +59,23 @@ pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     // /R   replace Read only files
     res
 }
+#[cfg(unix)]
+pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
+    let mut res = OsString::new();
+    //linux recursive copy : cp --preserve=all -r src/ dst
+    res.push(r###"cp --preserve=all -r ""###);
+    res.push(src);
+    res.push("/");
+    res.push(r###"" ""###);
+    res.push(dst);
+    // --preseve=all copy attributes ownershit datetime 
+    // -r             recursive
+    res
+}
 
+#[cfg(windows)]
 pub fn gen_del(dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
-    //linux remove rm -f fic
     res.push(r###"DEL ""###);
     res.push(dst);
     res.push(r###"" /F /A "###);
@@ -70,10 +83,19 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
     //   /A   delete whatever attributes
     res
 }
+#[cfg(unix)]
+pub fn gen_del(dst: &PathBuf) -> OsString {
+    let mut res = OsString::new();
+    //linux remove rm -f fic
+    res.push(r###"RM -f ""###);
+    res.push(dst);
+    //   -f   Force delete 
+    res
+}
 
+#[cfg(windows)]
 pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     let mut res = OsString::new();
-    //linux remove folder and content rm -rf fold
     if nbfold > 10 || nbfic > 100 {
         let s = format!(
             "Echo {:?} Contains {} folders and {}  files.\n",
@@ -94,6 +116,54 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     //   /Q   No confirmation ask to user
     res
 }
+#[cfg(unix)]
+pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
+    let mut res = OsString::new();
+    //linux remove folder and content rm -rf fold
+    //TODO: asking in linux 
+    //TODO : Eol
+    if nbfold > 10 || nbfic > 100 {
+        /*
+            echo "Do you wish to delete this folder?"
+            select yn in "Yes" "No"; do
+                case $yn in
+                    Yes ) rm -rf dst; break;;
+                    No ) break;;
+                esac
+            done
+        */
+        let s = format!(
+            "Echo {:?} Contains {} folders and {}  files.\n",
+            dst, nbfold, nbfic
+        );
+        //check shell command for asking 
+        res.push(s);
+        res.push("Echo Please confirm deletation\n");
+        res.push("Echo Y to Delete\n");
+        res.push("Echo N to keep\n");
+        res.push("choice /C YN\n");
+        res.push("if '%ERRORLEVEL%'=='1' ");
+    }
+    res.push(r###"rm -rf ""###);
+    res.push(dst);
+    res.push(r###"""###);
+    //   -rf  recursive and force
+    res
+}
+
+#[cfg(unix)]
+pub fn start_script() -> (String,String)
+{
+    ("#/bin/sh".to_string(),"".to_string())
+}
+
+
+#[cfg(windows)]
+pub fn start_script() -> (String,String)
+{
+    ("@echo off".to_string(),"chcp 65001".to_string())
+}
+
 
 /**
 * start output thread
@@ -124,9 +194,12 @@ pub fn start_thread_scriptgen(
         let writer = writer.as_mut(); //redifinig writer to remove all .as_mut()
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
+        let begin = start_script();
+        writer.write(begin.0);
+        writer.write(begin.1);
         //linux; start with #/usr/bin/sh
-        writer.write("@echo off".to_string());
-        writer.write("chcp 65001".to_string()); //utf8 codepage
+        //writer.write("@echo off".to_string());
+        //writer.write("chcp 65001".to_string()); //utf8 codepage
         for data in from_comp {
             let start = SystemTime::now();
             let c = data.to_command();
