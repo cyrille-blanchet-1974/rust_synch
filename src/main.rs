@@ -140,7 +140,7 @@ fn main() {
         to_logger.clone(),
         to_progress.clone(),
     );
-    let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger, to_progress.clone());
+    let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger, to_progress);
 
     //wait for threads to stop
     if hreadsrc.join().is_err() {
