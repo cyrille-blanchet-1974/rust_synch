@@ -27,6 +27,7 @@ impl Command {
     }
 }
 
+#[cfg(windows)]
 pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
     res.push(r###"XCOPY ""###);
@@ -40,7 +41,19 @@ pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     // /R   replace Read only files
     res
 }
+#[cfg(unix)]
+pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
+    let mut res = OsString::new();
+    res.push(r###"cp --preserve=all ""###);
+    res.push(src);
+    res.push(r###"" ""###);
+    res.push(dst);
+    res.push(r###"" "###);
+    // --preseve=all copy attributes ownership datetime 
+    res
+}
 
+#[cfg(windows)]
 pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
     res.push(r###"XCOPY ""###);
@@ -57,7 +70,22 @@ pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     // /R   replace Read only files
     res
 }
+#[cfg(unix)]
+pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
+    let mut res = OsString::new();
+    //linux recursive copy : cp --preserve=all -r src/ dst
+    res.push(r###"cp --preserve=all -r ""###);
+    res.push(src);
+    res.push("/");
+    res.push(r###"" ""###);
+    res.push(dst);
+    res.push(r###"" "###);
+    // --preseve=all copy attributes ownership datetime 
+    // -r             recursive
+    res
+}
 
+#[cfg(windows)]
 pub fn gen_del(dst: &PathBuf) -> OsString {
     let mut res = OsString::new();
     res.push(r###"DEL ""###);
@@ -67,19 +95,36 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
     //   /A   delete whatever attributes
     res
 }
+#[cfg(unix)]
+pub fn gen_del(dst: &PathBuf) -> OsString {
+    let mut res = OsString::new();
+    //linux remove rm -f fic
+    res.push(r###"rm -f ""###);
+    res.push(dst);
+    res.push(r###"" "###);
+    //   -f   Force delete 
+    res
+}
 
+#[cfg(windows)]
 pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     let mut res = OsString::new();
     if nbfold > 10 || nbfic > 100 {
         let s = format!(
-            "Echo {:?} Contains {} folders and {}  files.\n",
+            "Echo {:?} Contains {} folders and {}  files.",
             dst, nbfold, nbfic
         );
+        //check shell command for asking 
         res.push(s);
-        res.push("Echo Please confirm deletation\n");
-        res.push("Echo Y to Delete\n");
-        res.push("Echo N to keep\n");
-        res.push("choice /C YN\n");
+        res.push(EOL);
+        res.push("Echo Please confirm deletation");
+        res.push(EOL);
+        res.push("Echo Y to Delete");
+        res.push(EOL);
+        res.push("Echo N to keep");
+        res.push(EOL);
+        res.push("choice /C YN");
+        res.push(EOL);
         res.push("if '%ERRORLEVEL%'=='1' ");
     }
     res.push(r###"RD /S /Q ""###);
@@ -89,6 +134,54 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
     //   /Q   No confirmation ask to user
     res
 }
+#[cfg(unix)]
+pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
+    let mut cmd = OsString::new(); 
+    cmd.push(r###"rm -rf ""###);
+    cmd.push(dst);
+    cmd.push(r###"""###);
+    //   -rf  recursive and force
+    if nbfold > 10 || nbfic > 100 {
+        let mut res = OsString::new();
+        let s = format!(
+            "echo {:?} Contains {} folders and {}  files.",
+            dst, nbfold, nbfic
+        );
+        res.push(s);
+        res.push(EOL);
+        res.push("echo Do you wish to delete this folder? \"Yes\" will Proceed, Anything Else will keep it");
+        res.push(EOL);
+        res.push("    read yn");
+        res.push(EOL);
+        res.push("        case $yn in");
+        res.push(EOL);
+        res.push("            Yes) ");
+                            res.push(cmd);
+                                res.push(";;");
+        res.push(EOL);
+        res.push("            *) echo avoid delete ;;");
+        res.push(EOL);
+        res.push("        esac");
+        res.push(EOL);
+        res
+    }else{ 
+        cmd 
+    }
+}
+
+#[cfg(unix)]
+pub fn start_script() -> (String,String)
+{
+    ("#/bin/sh".to_string(),"".to_string())
+}
+
+
+#[cfg(windows)]
+pub fn start_script() -> (String,String)
+{
+    ("@echo off".to_string(),"chcp 65001".to_string())
+}
+
 
 /**
 * start output thread
@@ -119,8 +212,12 @@ pub fn start_thread_scriptgen(
         let writer = writer.as_mut(); //redifinig writer to remove all .as_mut()
         let start_elapse = SystemTime::now();
         let mut tps = Duration::new(0, 0);
-        writer.write("@echo off".to_string());
-        writer.write("chcp 65001".to_string()); //utf8 codepage
+        let begin = start_script();
+        writer.write(begin.0);
+        writer.write(begin.1);
+        //linux; start with #/usr/bin/sh
+        //writer.write("@echo off".to_string());
+        //writer.write("chcp 65001".to_string()); //utf8 codepage
         for data in from_comp {
             let start = SystemTime::now();
             let c = data.to_command();
