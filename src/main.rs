@@ -6,6 +6,7 @@ mod fold;
 mod join;
 mod logger;
 mod paramcli;
+mod progression;
 mod readconf;
 mod scriptgen;
 mod writer;
@@ -16,6 +17,7 @@ use explorer::*;
 use join::*;
 use logger::*;
 use paramcli::*;
+use progression::*;
 use scriptgen::*;
 
 use std::path::Path;
@@ -83,10 +85,14 @@ fn main() {
     let (to_script, from_comp) = channel();
     //channel to the logger
     let (to_logger, from_all) = channel();
+    //channel to progression
+    let (to_progress, from_all_prog) = channel();
 
     //start the logger
     let logfile = Path::new(&param.fic_out).with_extension("log"); //log is same a config except the extension
     let hlogger = start_thread_logger(from_all, logfile.to_path_buf());
+
+    let hprogress = start_thread_progress(from_all_prog, param.source.len());
 
     //start writer thread
     let hscriptgen = start_thread_scriptgen(
@@ -103,8 +109,20 @@ fn main() {
         dst.push(Path::new(&d).to_path_buf());
     }
     // start compare threads
-    let hcompp = start_thread_comp_p(from_join_p, to_script.clone(), &opt, to_logger.clone());
-    let hcompm = start_thread_comp_m(from_join_m, to_script, &opt, to_logger.clone());
+    let hcompp = start_thread_comp_p(
+        from_join_p,
+        to_script.clone(),
+        &opt,
+        to_logger.clone(),
+        to_progress.clone(),
+    );
+    let hcompm = start_thread_comp_m(
+        from_join_m,
+        to_script,
+        &opt,
+        to_logger.clone(),
+        to_progress.clone(),
+    );
     //start join thread
     let hjoin = start_thread_joiner(
         from_read,
@@ -112,10 +130,17 @@ fn main() {
         to_comp_p,
         to_logger.clone(),
         opt.verbose,
+        to_progress.clone(),
     );
     //start read threads
-    let hreadsrc = start_thread_read_src(to_join.clone(), src, &opt, to_logger.clone());
-    let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger);
+    let hreadsrc = start_thread_read_src(
+        to_join.clone(),
+        src,
+        &opt,
+        to_logger.clone(),
+        to_progress.clone(),
+    );
+    let hreaddst = start_thread_read_dst(to_join, dst, &opt, to_logger, to_progress.clone());
 
     //wait for threads to stop
     if hreadsrc.join().is_err() {
@@ -138,5 +163,8 @@ fn main() {
     }
     if hlogger.join().is_err() {
         println!("Thread {} finished with error", LOGGER);
+    }
+    if hprogress.join().is_err() {
+        println!("Thread {} finished with error", PROGRESS);
     }
 }

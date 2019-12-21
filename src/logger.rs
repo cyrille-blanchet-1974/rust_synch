@@ -109,9 +109,7 @@ impl Logger {
 }
 
 /**
-* start logger thread
-* for now we only output what we receive to console
-*
+* start logger thread*
 */
 pub fn start_thread_logger(from_all: Receiver<String>, output: PathBuf) -> JoinHandle<()> {
     spawn(move || {

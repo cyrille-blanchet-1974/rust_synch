@@ -2,6 +2,7 @@ use super::constant::*;
 use super::fold::*;
 use super::logger::*;
 use super::paramcli::*;
+use super::progression::*;
 
 use std::fmt;
 use std::fs;
@@ -124,6 +125,7 @@ fn start_thread_read(
     data: Vec<PathBuf>,
     opt: &Options,
     to_logger: Sender<String>,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
     let mut explorer = Explorer::new(what.to_name(), opt, to_logger.clone());
     let logger = Logger::new(what.to_name(), opt.verbose, to_logger);
@@ -149,6 +151,10 @@ fn start_thread_read(
             let start = SystemTime::now();
             let src = explorer.run(&Path::new(s));
             tps += logger.timed(format!("finished reading {} ", s), start);
+            if to_progress.send(Action::Read).is_err() {
+                logger.error("error sending to progress".to_string());
+                return;
+            }
             //send data to join thread thru MPSC chanel
             if to_join.send((what.clone(), src)).is_err() {
                 logger.error("seding data to join".to_string());
@@ -175,8 +181,9 @@ pub fn start_thread_read_src(
     data: Vec<PathBuf>,
     opt: &Options,
     to_logger: Sender<String>,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
-    start_thread_read(Place::Src, to_join, data, opt, to_logger)
+    start_thread_read(Place::Src, to_join, data, opt, to_logger, to_progress)
 }
 
 /**
@@ -190,6 +197,7 @@ pub fn start_thread_read_dst(
     data: Vec<PathBuf>,
     opt: &Options,
     to_logger: Sender<String>,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
-    start_thread_read(Place::Dst, to_join, data, opt, to_logger)
+    start_thread_read(Place::Dst, to_join, data, opt, to_logger, to_progress)
 }

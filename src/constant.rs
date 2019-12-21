@@ -7,3 +7,4 @@ pub const COMPP: &str = "Compare plus ";
 pub const COMPM: &str = "Compare minus";
 pub const SCRIPTGEN: &str = "Script writer";
 pub const LOGGER: &str = "Log writer   ";
+pub const PROGRESS: &str = "Progression  ";

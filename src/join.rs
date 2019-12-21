@@ -2,6 +2,7 @@ use super::constant::*;
 use super::explorer::*;
 use super::fold::*;
 use super::logger::*;
+use super::progression::*;
 
 use std::collections::VecDeque;
 use std::sync::mpsc::{Receiver, Sender};
@@ -21,6 +22,7 @@ pub fn start_thread_joiner(
     to_comp_m: Sender<(Arc<Fold>, Arc<Fold>)>,
     to_logger: Sender<String>,
     verbose: bool,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
     spawn(move || {
         let logger = Logger::new(JOINER.to_string(), verbose, to_logger);
@@ -68,6 +70,10 @@ pub fn start_thread_joiner(
                 nb_comp += 1;
             }
             tps += logger.timed("finished one operation".to_string(), start);
+            if to_progress.send(Action::Join).is_err() {
+                logger.error("error sending to progress".to_string());
+                return;
+            }
         }
         logger.dual_timed(
             format!(

@@ -2,6 +2,7 @@ use super::constant::*;
 use super::fold::*;
 use super::logger::*;
 use super::paramcli::*;
+use super::progression::*;
 use super::scriptgen::*;
 
 use std::path::Path;
@@ -252,8 +253,9 @@ pub fn start_thread_comp_p(
     to_script: Sender<Command>,
     opt: &Options,
     to_logger: Sender<String>,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
-    start_thread_comp(false, from_join, to_script, opt, to_logger)
+    start_thread_comp(false, from_join, to_script, opt, to_logger, to_progress)
 }
 
 /**
@@ -265,8 +267,9 @@ pub fn start_thread_comp_m(
     to_script: Sender<Command>,
     opt: &Options,
     to_logger: Sender<String>,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
-    start_thread_comp(true, from_join, to_script, opt, to_logger)
+    start_thread_comp(true, from_join, to_script, opt, to_logger, to_progress)
 }
 
 fn start_thread_comp(
@@ -275,6 +278,7 @@ fn start_thread_comp(
     to_script: Sender<Command>,
     opt: &Options,
     to_logger: Sender<String>,
+    to_progress: Sender<Action>,
 ) -> JoinHandle<()> {
     let plus = plus;
     let name = if plus { COMPP } else { COMPM };
@@ -293,6 +297,10 @@ fn start_thread_comp(
             }
             nb_comp += 1;
             tps += cmp.logger.timed(format!("Finished one {}", &name), start);
+            if to_progress.send(Action::Compare).is_err() {
+                cmp.logger.error("error sending to progress".to_string());
+                return;
+            }
         }
         cmp.logger.dual_timed(
             format!("Finished all {} ({})", &name, nb_comp),
