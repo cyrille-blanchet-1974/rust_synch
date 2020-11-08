@@ -49,7 +49,7 @@ pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
     res.push(r###"" ""###);
     res.push(dst);
     res.push(r###"" "###);
-    // --preseve=all copy attributes ownership datetime 
+    // --preseve=all copy attributes ownership datetime
     res
 }
 
@@ -80,7 +80,7 @@ pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
     res.push(r###"" ""###);
     res.push(dst);
     res.push(r###"" "###);
-    // --preseve=all copy attributes ownership datetime 
+    // --preseve=all copy attributes ownership datetime
     // -r             recursive
     res
 }
@@ -102,7 +102,7 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
     res.push(r###"rm -f ""###);
     res.push(dst);
     res.push(r###"" "###);
-    //   -f   Force delete 
+    //   -f   Force delete
     res
 }
 
@@ -114,7 +114,7 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
             "Echo {:?} Contains {} folders and {}  files.",
             dst, nbfold, nbfic
         );
-        //check shell command for asking 
+        //check shell command for asking
         res.push(s);
         res.push(EOL);
         res.push("Echo Please confirm deletation");
@@ -136,7 +136,7 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
 }
 #[cfg(unix)]
 pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
-    let mut cmd = OsString::new(); 
+    let mut cmd = OsString::new();
     cmd.push(r###"rm -rf ""###);
     cmd.push(dst);
     cmd.push(r###"""###);
@@ -156,32 +156,28 @@ pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
         res.push("        case $yn in");
         res.push(EOL);
         res.push("            Yes) ");
-                            res.push(cmd);
-                                res.push(";;");
+        res.push(cmd);
+        res.push(";;");
         res.push(EOL);
         res.push("            *) echo avoid delete ;;");
         res.push(EOL);
         res.push("        esac");
         res.push(EOL);
         res
-    }else{ 
-        cmd 
+    } else {
+        cmd
     }
 }
 
 #[cfg(unix)]
-pub fn start_script() -> (String,String)
-{
-    ("#/bin/sh".to_string(),"".to_string())
+pub fn start_script() -> (String, String) {
+    ("#/bin/sh".to_string(), "".to_string())
 }
-
 
 #[cfg(windows)]
-pub fn start_script() -> (String,String)
-{
-    ("@echo off".to_string(),"chcp 65001".to_string())
+pub fn start_script() -> (String, String) {
+    ("@echo off".to_string(), "chcp 65001".to_string())
 }
-
 
 /**
 * start output thread

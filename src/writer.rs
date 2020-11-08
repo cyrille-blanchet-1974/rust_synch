@@ -53,7 +53,7 @@ pub static EOL: &str = "\r\n";
 impl Writing for WriterDisk {
     //how to write a log to disk
     fn write(&mut self, data: String) {
-        let data2 = format!("{}{}", data,EOL);
+        let data2 = format!("{}{}", data, EOL);
         match self.writer.write_all(data2.as_bytes()) {
             Err(e) => {
                 println!("Error writing in file {:?}", e);

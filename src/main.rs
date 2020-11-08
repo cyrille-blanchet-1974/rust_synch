@@ -90,7 +90,7 @@ fn main() {
 
     //start the logger
     let logfile = Path::new(&param.fic_out).with_extension("log"); //log is same a config except the extension
-    let hlogger = start_thread_logger(from_all, logfile.to_path_buf());
+    let hlogger = start_thread_logger(from_all, logfile);
 
     let hprogress = start_thread_progress(from_all_prog, param.source.len());
 

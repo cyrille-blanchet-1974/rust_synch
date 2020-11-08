@@ -35,8 +35,13 @@ impl Paramcli {
         let mut conf = String::new();
 
         let args: Vec<String> = env::args().skip(1).collect();
+        let name = env::args()
+            .take(1)
+            .next()
+            .unwrap_or_else(|| String::from("synch"));
+        println!("{} 1.0 (2019)", name);
         if args.is_empty() {
-            help();
+            help(&name);
         }
         for arg in args {
             println!("{}", arg);
@@ -45,7 +50,7 @@ impl Paramcli {
                 || arg.to_lowercase() == "/help"
                 || arg.to_lowercase() == "-help"
             {
-                help();
+                help(&name);
             }
             if arg.to_lowercase().starts_with("/src:") {
                 src.push(get_param(arg));
@@ -85,24 +90,24 @@ impl Paramcli {
         if src.len() != dst.len() {
             println!("ERROR! number of source and destination do not match!");
             println!("--------------------------------------------------");
-            help();
+            help(&name);
         }
         if src.is_empty() {
             println!("ERROR! nothing to synch!");
             println!("--------------------------------------------------");
-            help();
+            help(&name);
         }
         for i in 1..src.len() {
             if src.get(i) == dst.get(i) {
                 println!("ERROR! src equals to destination {:?}", src.get(i));
                 println!("--------------------------------------------------");
-                help();
+                help(&name);
             }
         }
         if fic.is_empty() {
             println!("ERROR! not output script provided");
             println!("--------------------------------------------------");
-            help();
+            help(&name);
         }
         Paramcli {
             source: src,
@@ -141,9 +146,9 @@ fn get_param(arg: String) -> String {
     res
 }
 
-fn help() {
-    println!("syntax 1 : synch /src:folder_src /dst:folder_dst /fic:output_script [/verbose] [/crypt] [/ignore_err]");
-    println!("syntax 2 : synch /conf:conf_file                 /fic:output_script [/verbose] [/crypt] [/ignore_err]");
+fn help(name: &str) {
+    println!("syntax 1 : {} /src:folder_src /dst:folder_dst /fic:output_script [/verbose] [/crypt] [/ignore_err]",name);
+    println!("syntax 2 : {} /conf:conf_file                 /fic:output_script [/verbose] [/crypt] [/ignore_err]",name);
     println!("paramerters between [] are optionnals");
     println!("------------------------------------");
     println!("folder_src: folder to be duplicate");
