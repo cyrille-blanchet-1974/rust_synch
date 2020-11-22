@@ -1,2 +1,0 @@
-source=./test_data_synch/src
-destination=./test_data_synch/dst
