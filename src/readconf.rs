@@ -6,12 +6,14 @@ use std::io::BufReader;
 pub struct Readconf {
     pub source: Vec<String>,
     pub destination: Vec<String>,
+    pub exception: Vec<String>,
 }
 
 impl Readconf {
     pub fn new(ficconf: &str) -> Readconf {
         let mut src = Vec::new();
         let mut dst = Vec::new();
+        let mut exc = Vec::new();
 
         let input = File::open(&ficconf);
         match input {
@@ -27,15 +29,21 @@ impl Readconf {
                             src.push(res);
                         } else if l.to_lowercase().starts_with("destination=") {
                             dst.push(res);
+                        } else if l.to_lowercase().starts_with("exception=") {
+                            exc.push(res);
                         }
                     } //TODO : else ...
                 }
             }
         }
+        if src.len() != dst.len(){
+            panic!("Incorrect Configuration file {}",&ficconf);
+        }             
 
         Readconf {
             source: src,
             destination: dst,
+            exception: exc,
         }
     }
 }
