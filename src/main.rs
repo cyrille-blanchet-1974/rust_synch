@@ -64,7 +64,7 @@ use std::sync::mpsc::channel;
  * entry point of app
  */
 fn main() {
-    println!("synch 1.0 (2019)");
+    println!("synch 1.1.0 (2021)");
     let param = Paramcli::new();
     if param.verbose {
         println!("params: {:?}", param);

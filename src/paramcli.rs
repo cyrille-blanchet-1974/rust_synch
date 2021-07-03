@@ -9,6 +9,7 @@ pub struct Options
     pub verbose: bool,
     pub crypt: bool,
     pub ignore_err: bool,
+    pub exceptions: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -17,6 +18,7 @@ pub struct Paramcli
 {
     pub source: Vec<String>,
     pub destination: Vec<String>,
+    pub exceptions: Vec<String>,
     pub fic_out: String,
     pub verbose: bool,
     pub crypt: bool,
@@ -32,6 +34,7 @@ impl Paramcli {
         let mut ign = false;
         let mut src = Vec::new();
         let mut dst = Vec::new();
+        let mut exc = Vec::new();
         let mut conf = String::new();
 
         let args: Vec<String> = env::args().skip(1).collect();
@@ -39,7 +42,7 @@ impl Paramcli {
             .take(1)
             .next()
             .unwrap_or_else(|| String::from("synch"));
-        println!("{} 1.0 (2019)", name);
+        println!("{} 1.1.0 (2021)", name);
         if args.is_empty() {
             help(&name);
         }
@@ -85,6 +88,7 @@ impl Paramcli {
             let readconf = Readconf::new(&conf);
             src = readconf.source;
             dst = readconf.destination;
+            exc = readconf.exception;
         }
         //checks
         if src.len() != dst.len() {
@@ -112,6 +116,7 @@ impl Paramcli {
         Paramcli {
             source: src,
             destination: dst,
+            exceptions:exc,
             fic_out: fic,
             verbose: ver,
             crypt: cry,
@@ -128,6 +133,7 @@ impl Paramcli {
             verbose: self.verbose,
             crypt: self.crypt,
             ignore_err: self.ignore_err,
+            exceptions: self.exceptions.clone(),
         }
     }
 }
@@ -161,5 +167,6 @@ fn help(name: &str) {
     println!("---------------------------------------------------------------------------");
     println!("* conf_file format: multiple lines working in pairs");
     println!("lines starting with 'source='  or 'destination='");
+    println!("lines can also start with 'exception=' folder containing these values will be ignore");
     std::process::exit(0);
 }

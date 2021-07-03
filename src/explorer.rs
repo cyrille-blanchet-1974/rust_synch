@@ -17,6 +17,7 @@ pub struct Explorer {
     ignore_err: bool,
     folder_forbidden_count: u32,
     file_forbidden_count: u32,
+    exceptions: Vec<String>,
     logger: Logger,
 }
 
@@ -27,6 +28,7 @@ impl Explorer {
             ignore_err: o.ignore_err,
             folder_forbidden_count: 0,
             file_forbidden_count: 0,
+            exceptions: o.exceptions.clone(),
             logger: log,
         }
     }
@@ -49,9 +51,28 @@ impl Explorer {
         d
     }
 
+    //check dir is not in self.exceptions
+    fn is_exception(&mut self, dir: &Path) -> bool {
+        let mut d = String::new();
+        match dir.to_str() {
+            None => {
+                self.logger.error(format!("{:?} is not a valid UTF-8 sequence", dir));
+                return false;
+            },
+            Some(s) => d.push_str(s),
+        }
+        for e in &self.exceptions{
+            if d.contains(e) {
+                self.logger.error(format!("{:?} in exceptions", dir));
+                return true
+            }
+        }
+        false
+    }
+
     //internal function called by run so run could do some 1st call things without testing at each runs
     fn run_int(&mut self, dir: &Path, fold: &mut Fold) {
-        if dir.is_dir() {
+        if dir.is_dir() && !self.is_exception(dir) {
             let dir_content = fs::read_dir(dir);
             match dir_content {
                 Err(e) => {
@@ -73,7 +94,7 @@ impl Explorer {
                                 if path.is_dir() {
                                     let mut sub_fold = Fold::new(&path);
                                     self.run_int(&path, &mut sub_fold);
-                                    fold.add_fold(sub_fold);
+                                    fold.add_fold(sub_fold);    
                                 } else {
                                     let fic = Fic::new(&path);
                                     if fic.forbidden {
