@@ -92,9 +92,11 @@ impl Explorer {
                             Ok(e) => {
                                 let path = e.path();
                                 if path.is_dir() {
-                                    let mut sub_fold = Fold::new(&path);
-                                    self.run_int(&path, &mut sub_fold);
-                                    fold.add_fold(sub_fold);    
+                                    if !self.is_exception(dir) {
+                                        let mut sub_fold = Fold::new(&path);
+                                        self.run_int(&path, &mut sub_fold);
+                                        fold.add_fold(sub_fold);        
+                                    }
                                 } else {
                                     let fic = Fic::new(&path);
                                     if fic.forbidden {
