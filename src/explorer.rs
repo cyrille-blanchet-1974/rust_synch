@@ -92,7 +92,7 @@ impl Explorer {
                             Ok(e) => {
                                 let path = e.path();
                                 if path.is_dir() {
-                                    if !self.is_exception(dir) {
+                                    if !self.is_exception(&path) {
                                         let mut sub_fold = Fold::new(&path);
                                         self.run_int(&path, &mut sub_fold);
                                         fold.add_fold(sub_fold);        
