@@ -18,4 +18,5 @@ Cargo.lock
 /test/dst/
 /test/res/
 /test/synch.exe
+/test/synch
 /test/conf.fic
