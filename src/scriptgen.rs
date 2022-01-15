@@ -43,7 +43,7 @@ pub fn gen_copy(src: &Path, dst: &Path) -> OsString {
     res
 }
 #[cfg(unix)]
-pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
+pub fn gen_copy(src: &Path, dst: &Path) -> OsString {
     let mut res = OsString::new();
     res.push(r###"cp --preserve=all ""###);
     res.push(src);
@@ -72,7 +72,7 @@ pub fn gen_copy_rec(src: &Path, dst: &Path) -> OsString {
     res
 }
 #[cfg(unix)]
-pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
+pub fn gen_copy_rec(src: &Path, dst: &Path) -> OsString {
     let mut res = OsString::new();
     //linux recursive copy : cp --preserve=all -r src/ dst
     res.push(r###"cp --preserve=all -r ""###);
@@ -97,7 +97,7 @@ pub fn gen_del(dst: &Path) -> OsString {
     res
 }
 #[cfg(unix)]
-pub fn gen_del(dst: &PathBuf) -> OsString {
+pub fn gen_del(dst: &Path) -> OsString {
     let mut res = OsString::new();
     //linux remove rm -f fic
     res.push(r###"rm -f ""###);
@@ -136,7 +136,7 @@ pub fn gen_rd(dst: &Path, nbfic: u32, nbfold: u32) -> OsString {
     res
 }
 #[cfg(unix)]
-pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
+pub fn gen_rd(dst: &Path, nbfic: u32, nbfold: u32) -> OsString {
     let mut cmd = OsString::new();
     cmd.push(r###"rm -rf ""###);
     cmd.push(dst);
