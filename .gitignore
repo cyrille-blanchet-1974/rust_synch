@@ -14,9 +14,8 @@ Cargo.lock
 #exception for simple test folder
 !/test
 #but some files inside must not be commited
-/test/run1.cmd
+/test/src/
+/test/dst/
+/test/res/
 /test/synch.exe
-/test/run1.log
-/test/run1.sh
-/test/synch
-output2
+/test/conf.fic
