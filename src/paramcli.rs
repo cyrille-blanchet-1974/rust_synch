@@ -10,6 +10,7 @@ pub struct Options
     pub crypt: bool,
     pub ignore_err: bool,
     pub exceptions: Vec<String>,
+    pub ignore_date_diff: bool,
 }
 
 #[derive(Debug)]
@@ -24,6 +25,7 @@ pub struct Paramcli
     pub crypt: bool,
     pub ignore_err: bool,
     pub config: String,
+    pub ignore_date_diff: bool,
 }
 
 impl Paramcli {
@@ -36,6 +38,7 @@ impl Paramcli {
         let mut dst = Vec::new();
         let mut exc = Vec::new();
         let mut conf = String::new();
+        let mut igndate = false;
 
         let args: Vec<String> = env::args().skip(1).collect();
         let name = env::args()
@@ -83,6 +86,10 @@ impl Paramcli {
                 ign = true;
                 continue;
             }
+            if arg.to_lowercase() == "/ignore_date_diff" {
+                igndate = true;
+                continue;
+            }
         }
         if !conf.is_empty() {
             let readconf = Readconf::new(&conf);
@@ -116,12 +123,13 @@ impl Paramcli {
         Paramcli {
             source: src,
             destination: dst,
-            exceptions:exc,
+            exceptions: exc,
             fic_out: fic,
             verbose: ver,
             crypt: cry,
             ignore_err: ign,
             config: conf,
+            ignore_date_diff: igndate,
         }
     }
     /**
@@ -134,6 +142,7 @@ impl Paramcli {
             crypt: self.crypt,
             ignore_err: self.ignore_err,
             exceptions: self.exceptions.clone(),
+            ignore_date_diff: self.ignore_date_diff,
         }
     }
 }
@@ -142,19 +151,19 @@ fn get_param(arg: String) -> String {
     let mut res = String::new();
     for part in arg.split(':').skip(1) {
         if !res.is_empty() {
-            res.push_str(":");
+            res.push(':');
         }
         res.push_str(part);
     }
     if arg.ends_with(':') {
-        res.push_str(":");
+        res.push(':');
     }
     res
 }
 
 fn help(name: &str) {
-    println!("syntax 1 : {} /src:folder_src /dst:folder_dst /fic:output_script [/verbose] [/crypt] [/ignore_err]",name);
-    println!("syntax 2 : {} /conf:conf_file                 /fic:output_script [/verbose] [/crypt] [/ignore_err]",name);
+    println!("syntax 1 : {} /src:folder_src /dst:folder_dst /fic:output_script [/verbose] [/crypt] [/ignore_err] [/ignore_date_diff]",name);
+    println!("syntax 2 : {} /conf:conf_file                 /fic:output_script [/verbose] [/crypt] [/ignore_err] [/ignore_date_diff]",name);
     println!("paramerters between [] are optionnals");
     println!("------------------------------------");
     println!("folder_src: folder to be duplicate");
@@ -164,9 +173,12 @@ fn help(name: &str) {
     println!("/verbose: display more information on the screen");
     println!("/crypt: if a source file is exactly 4096 bytes less than the destination one then concider them equals");
     println!("/ignore_err: do not stop in case of error");
+    println!("/ignore_date_diff: do not copy file with only date diff");
     println!("---------------------------------------------------------------------------");
     println!("* conf_file format: multiple lines working in pairs");
     println!("lines starting with 'source='  or 'destination='");
-    println!("lines can also start with 'exception=' folder containing these values will be ignore");
+    println!(
+        "lines can also start with 'exception=' folder containing these values will be ignore"
+    );
     std::process::exit(0);
 }

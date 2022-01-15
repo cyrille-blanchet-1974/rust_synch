@@ -23,6 +23,7 @@ pub struct Comparer {
     ignore_err: bool,
     to_script: Sender<Command>, //MPSC chanel to send command to be written to output script
     logger: Logger,
+    ignore_date_diff: bool,
 }
 
 impl Comparer {
@@ -34,6 +35,7 @@ impl Comparer {
             ignore_err: o.ignore_err,
             to_script: s,
             logger: log,
+            ignore_date_diff: o.ignore_date_diff,
         }
     }
 
@@ -43,7 +45,7 @@ impl Comparer {
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
-        self.gen_copy_recurse(&src, &dst, &racine_src, &racine_dst);
+        self.gen_copy_recurse(src, dst, racine_src, racine_dst);
         self.logger.timed(
             format!("Finished finding copies from {:?}", &src.name),
             start,
@@ -58,7 +60,7 @@ impl Comparer {
         let racine_src = Path::new(&src.name);
         let racine_dst = Path::new(&dst.name);
         let start = SystemTime::now();
-        self.gen_remove_recurse(&src, &dst, &racine_src, &racine_dst);
+        self.gen_remove_recurse(src, dst, racine_src, racine_dst);
         self.logger.timed(
             format!("finished finding what to deletes from {:?}", &dst.name),
             start,
@@ -108,10 +110,10 @@ impl Comparer {
                         }
                         continue;
                     }
-                    //exist nin both src and dst  -> Ok proceed the content
+                    //exist in both src and dst  -> Ok proceed the content
                     let new_racine_src = Path::new(&racine_src).join(&(val_src.name));
                     let new_racine_dst = Path::new(&racine_dst).join(&(val_src.name));
-                    self.gen_copy_recurse(&val_src, &val_dst, &new_racine_src, &new_racine_dst);
+                    self.gen_copy_recurse(val_src, val_dst, &new_racine_src, &new_racine_dst);
                 }
             }
         }
@@ -144,6 +146,9 @@ impl Comparer {
                             ));
                         }
                         FicComp::DateChange(d1, d2) => {
+                            if !self.ignore_date_diff {
+                                same = false;
+                            }
                             if self.verbose {
                                 let m1: DateTime<Utc> = d1.into();
                                 let m2: DateTime<Utc> = d2.into();
@@ -213,7 +218,7 @@ impl Comparer {
                     //exist in both src and dst  -> Ok on procede the content
                     let new_racine_src = Path::new(&racine_src).join(&(val_dst.name));
                     let new_racine_dst = Path::new(&racine_dst).join(&(val_dst.name));
-                    self.gen_remove_recurse(&val_src, &val_dst, &new_racine_src, &new_racine_dst);
+                    self.gen_remove_recurse(val_src, val_dst, &new_racine_src, &new_racine_dst);
                 }
             }
         }
