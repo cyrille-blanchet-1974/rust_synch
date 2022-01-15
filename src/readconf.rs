@@ -22,23 +22,23 @@ impl Readconf {
             }
             Ok(f) => {
                 let buffered = BufReader::new(f);
-                for line in buffered.lines() {
-                    if let Ok(l) = line {
-                        let res = get_val(&l);
-                        if l.to_lowercase().starts_with("source=") {
-                            src.push(res);
-                        } else if l.to_lowercase().starts_with("destination=") {
-                            dst.push(res);
-                        } else if l.to_lowercase().starts_with("exception=") {
-                            exc.push(res);
-                        }
-                    } //TODO : else ...
+                for l in buffered.lines().flatten() {
+                    //if let Ok(l) = line {
+                    let res = get_val(&l);
+                    if l.to_lowercase().starts_with("source=") {
+                        src.push(res);
+                    } else if l.to_lowercase().starts_with("destination=") {
+                        dst.push(res);
+                    } else if l.to_lowercase().starts_with("exception=") {
+                        exc.push(res);
+                    }
+                    //} //TODO : else ...
                 }
             }
         }
-        if src.len() != dst.len(){
-            panic!("Incorrect Configuration file {}",&ficconf);
-        }             
+        if src.len() != dst.len() {
+            panic!("Incorrect Configuration file {}", &ficconf);
+        }
 
         Readconf {
             source: src,
@@ -52,7 +52,7 @@ fn get_val(arg: &str) -> String {
     let mut res = String::new();
     for part in arg.split('=').skip(1) {
         if !res.is_empty() {
-            res.push_str("=");
+            res.push('=');
         }
         res.push_str(part);
     }

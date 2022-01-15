@@ -56,15 +56,16 @@ impl Explorer {
         let mut d = String::new();
         match dir.to_str() {
             None => {
-                self.logger.error(format!("{:?} is not a valid UTF-8 sequence", dir));
+                self.logger
+                    .error(format!("{:?} is not a valid UTF-8 sequence", dir));
                 return false;
-            },
+            }
             Some(s) => d.push_str(s),
         }
-        for e in &self.exceptions{
+        for e in &self.exceptions {
             if d.contains(e) {
                 self.logger.error(format!("{:?} in exceptions", dir));
-                return true
+                return true;
             }
         }
         false
@@ -95,7 +96,7 @@ impl Explorer {
                                     if !self.is_exception(&path) {
                                         let mut sub_fold = Fold::new(&path);
                                         self.run_int(&path, &mut sub_fold);
-                                        fold.add_fold(sub_fold);        
+                                        fold.add_fold(sub_fold);
                                     }
                                 } else {
                                     let fic = Fic::new(&path);
@@ -172,7 +173,7 @@ fn start_thread_read(
             logger.verbose(format!("start reading {} ", s));
             //read time only
             let start = SystemTime::now();
-            let src = explorer.run(&Path::new(s));
+            let src = explorer.run(Path::new(s));
             tps += logger.timed(format!("finished reading {} ", s), start);
             if to_progress.send(Action::Read).is_err() {
                 logger.error("error sending to progress".to_string());

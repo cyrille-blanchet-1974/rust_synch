@@ -38,7 +38,7 @@ pub fn start_thread_joiner(
         let mut nb_comp = 0;
         //iterate on chanel
         for (typ, data) in from_read {
-            logger.verbose(format!("receive {} data", typ.to_string()));
+            logger.verbose(format!("receive {} data", typ));
             //real timing
             let start = SystemTime::now();
             //save the data receive in a list regarding of his type

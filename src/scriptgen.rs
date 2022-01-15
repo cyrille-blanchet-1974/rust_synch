@@ -4,6 +4,7 @@ use super::writer::*;
 
 use std::boxed::Box;
 use std::ffi::OsString;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread::{spawn, JoinHandle};
@@ -28,7 +29,7 @@ impl Command {
 }
 
 #[cfg(windows)]
-pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
+pub fn gen_copy(src: &Path, dst: &Path) -> OsString {
     let mut res = OsString::new();
     res.push(r###"XCOPY ""###);
     res.push(src);
@@ -54,7 +55,7 @@ pub fn gen_copy(src: &PathBuf, dst: &PathBuf) -> OsString {
 }
 
 #[cfg(windows)]
-pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
+pub fn gen_copy_rec(src: &Path, dst: &Path) -> OsString {
     let mut res = OsString::new();
     res.push(r###"XCOPY ""###);
     res.push(src);
@@ -86,7 +87,7 @@ pub fn gen_copy_rec(src: &PathBuf, dst: &PathBuf) -> OsString {
 }
 
 #[cfg(windows)]
-pub fn gen_del(dst: &PathBuf) -> OsString {
+pub fn gen_del(dst: &Path) -> OsString {
     let mut res = OsString::new();
     res.push(r###"DEL ""###);
     res.push(dst);
@@ -107,7 +108,7 @@ pub fn gen_del(dst: &PathBuf) -> OsString {
 }
 
 #[cfg(windows)]
-pub fn gen_rd(dst: &PathBuf, nbfic: u32, nbfold: u32) -> OsString {
+pub fn gen_rd(dst: &Path, nbfic: u32, nbfold: u32) -> OsString {
     let mut res = OsString::new();
     if nbfold > 10 || nbfic > 100 {
         let s = format!(

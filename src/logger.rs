@@ -140,10 +140,7 @@ pub fn start_thread_logger(from_all: Receiver<String>, output: PathBuf) -> JoinH
         let nb_ecr = writer.as_mut().get_nb_ecr();
         writer.as_mut().write(format!(
             "{} says: '{} lines writes in {:?}/{:?}'",
-            LOGGER.to_string(),
-            nb_ecr,
-            tps,
-            tps_elapse
+            LOGGER, nb_ecr, tps, tps_elapse
         ));
     })
 }
